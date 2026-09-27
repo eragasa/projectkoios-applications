@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import io
 import json
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 import tomllib
 import unittest
@@ -124,78 +126,119 @@ class InputProjectionRunnerTest(unittest.TestCase):
                 for fragment in expected["rendered_fragments"]:
                     self.assertIn(fragment, rendered_text)
 
-    def test_operational_provider_graph_is_exact_candidate_graph(self) -> None:
+    def test_exact_archive_operational_provider_graph(self) -> None:
+        simulations_repository = os.environ.get("PROJECTKOIOS_SIMULATIONS_REPOSITORY")
+        if simulations_repository is None:
+            self.skipTest(
+                "set PROJECTKOIOS_SIMULATIONS_REPOSITORY for exact archive proof"
+            )
+        commit = self.fixture["simulations_commit"]
+        tree = subprocess.run(
+            ["git", "rev-parse", f"{commit}^{{tree}}"],
+            cwd=simulations_repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertEqual(tree, self.fixture["simulations_tree"])
+        archive = subprocess.run(
+            ["git", "archive", commit, "--", "src/python"],
+            cwd=simulations_repository,
+            check=True,
+            capture_output=True,
+        ).stdout
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            archive_root = Path(temporary_directory)
+            with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as source:
+                source.extractall(archive_root, filter="data")
+            provider_root = archive_root / "src/python"
+            completed = self._run_isolated_graph(provider_root)
+        loaded = json.loads(completed.stdout)
         expected_modules = {
-            item["module"]: item["sha256"] for item in self.fixture["provider_modules"]
+            item["module"]: {
+                "path": item["path"].removeprefix("src/python/"),
+                "sha256": item["sha256"],
+            }
+            for item in self.fixture["provider_modules"]
         }
-        projection_module = importlib.import_module(
-            "projectkoios.integrations.quantumespresso.pw.scf.projection"
-        )
-        provider_root = Path(projection_module.__file__ or "").resolve().parents[5]
+        self.assertEqual(loaded, expected_modules)
+        for expected in self.fixture["provider_modules"]:
+            entry = (
+                subprocess.run(
+                    ["git", "ls-tree", commit, "--", expected["path"]],
+                    cwd=simulations_repository,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                .stdout.strip()
+                .split()
+            )
+            self.assertEqual(entry[:3], ["100644", "blob", expected["git_blob"]])
+
+    def test_ambient_provider_content_fingerprint_fallback(self) -> None:
+        for expected in self.fixture["provider_modules"]:
+            module = importlib.import_module(expected["module"])
+            self._assert_module_hash(module, expected["sha256"])
+
+    def _run_isolated_graph(
+        self, provider_root: Path
+    ) -> subprocess.CompletedProcess[str]:
         paths = [item["path"] for item in self.fixture["campaigns"]]
+        expected = {
+            item["module"]: item["path"].removeprefix("src/python/")
+            for item in self.fixture["provider_modules"]
+        }
         script = f"""
 import hashlib, json, sys, tempfile
 from pathlib import Path
-sys.path[:0] = [{str(provider_root)!r}, {str(self.repository / "src/python")!r}, {str(self.repository)!r}]
-from examples.projectkoios.applications.pw_dft_scf.runner.environment import WorkflowRunnerEnvironment
-from examples.projectkoios.applications.pw_dft_scf.runner.render_inputs import InputProjectionRunner
+assert not any(name == 'projectkoios' or name.startswith('projectkoios.') for name in sys.modules)
+sys.path[:0] = [
+    {str(provider_root)!r},
+    {str(self.repository / "src/python")!r},
+    {str(self.repository)!r},
+]
+from examples.projectkoios.applications.pw_dft_scf.runner.environment import (
+    WorkflowRunnerEnvironment,
+)
+from examples.projectkoios.applications.pw_dft_scf.runner.render_inputs import (
+    InputProjectionRunner,
+)
+root = Path({str(provider_root)!r}).resolve()
 example = Path({str(self.example)!r})
+expected = json.loads({json.dumps(expected, sort_keys=True)!r})
 environment = WorkflowRunnerEnvironment.load(example / 'runner/config/runner.toml')
 with tempfile.TemporaryDirectory() as directory:
     for index, relative in enumerate({paths!r}):
-        InputProjectionRunner(environment).render(example / relative, Path(directory) / str(index))
-prefixes = ('projectkoios.integrations.quantumespresso', 'projectkoios.integrations.vasp')
-loaded = {{
-    name: hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()
-    for name, module in sys.modules.items()
-    if name.startswith(prefixes) and getattr(module, '__file__', None)
-}}
+        InputProjectionRunner(environment).render(
+            example / relative,
+            Path(directory) / str(index),
+        )
+prefixes = (
+    'projectkoios.integrations.quantumespresso',
+    'projectkoios.integrations.vasp',
+)
+loaded = {{}}
+for name, module in sys.modules.items():
+    if not name.startswith(prefixes) or not getattr(module, '__file__', None):
+        continue
+    path = Path(module.__file__).resolve()
+    expected_path = (root / expected[name]).resolve()
+    assert path == expected_path
+    assert path.is_relative_to(root)
+    loaded[name] = {{
+        'path': path.relative_to(root).as_posix(),
+        'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+    }}
+assert set(loaded) == set(expected)
 print(json.dumps(loaded, sort_keys=True))
 """
-        completed = subprocess.run(
+        return subprocess.run(
             [sys.executable, "-I", "-c", script],
             check=True,
             capture_output=True,
             text=True,
         )
-        self.assertEqual(json.loads(completed.stdout), expected_modules)
-
-        simulations_repository = os.environ.get("PROJECTKOIOS_SIMULATIONS_REPOSITORY")
-        if simulations_repository is not None:
-            tree = subprocess.run(
-                [
-                    "git",
-                    "rev-parse",
-                    f"{self.fixture['simulations_commit']}^{{tree}}",
-                ],
-                cwd=simulations_repository,
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout.strip()
-            self.assertEqual(tree, self.fixture["simulations_tree"])
-        for expected in self.fixture["provider_modules"]:
-            module = importlib.import_module(expected["module"])
-            self._assert_module_hash(module, expected["sha256"])
-            if simulations_repository is not None:
-                entry = (
-                    subprocess.run(
-                        [
-                            "git",
-                            "ls-tree",
-                            self.fixture["simulations_commit"],
-                            "--",
-                            expected["path"],
-                        ],
-                        cwd=simulations_repository,
-                        check=True,
-                        capture_output=True,
-                        text=True,
-                    )
-                    .stdout.strip()
-                    .split()
-                )
-                self.assertEqual(entry[:3], ["100644", "blob", expected["git_blob"]])
 
     def _assert_module_hash(self, module: ModuleType, expected_sha256: str) -> None:
         module_path = Path(module.__file__ or "")

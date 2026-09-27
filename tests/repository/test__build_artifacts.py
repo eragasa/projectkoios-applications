@@ -20,9 +20,9 @@ _ROOT = Path(__file__).resolve().parents[2]
 _EPOCH = "1758931200"
 _SDIST_INVENTORY = _ROOT / "tests/fixtures/artifacts/sdist-inventory.txt"
 _SDIST_INVENTORY_SHA256 = (
-    "3712d25c8b034b58f9ef82d694cc54cf8261c55660eaf76f962e5fd67ea13a88"
+    "a34c53c738f7cd39aeba328f1db7013bdd5ece439580e2b94fe4843c84b23a4d"
 )
-_WHEEL_INVENTORY = {
+_WHEEL_INVENTORY = (
     "projectkoios/applications/__init__.py",
     "projectkoios/applications/py.typed",
     "projectkoios/applications/pw_dft_relaxation/__init__.py",
@@ -52,7 +52,7 @@ _WHEEL_INVENTORY = {
     "projectkoios_applications-0.1.0.dev0.dist-info/WHEEL",
     "projectkoios_applications-0.1.0.dev0.dist-info/top_level.txt",
     "projectkoios_applications-0.1.0.dev0.dist-info/RECORD",
-}
+)
 
 
 class BuildArtifactTest(unittest.TestCase):
@@ -141,7 +141,7 @@ class BuildArtifactTest(unittest.TestCase):
         with zipfile.ZipFile(wheel) as archive:
             names = archive.namelist()
         self.assertEqual(len(names), len(set(names)), "wheel has duplicate members")
-        self.assertEqual(sorted(names), sorted(_WHEEL_INVENTORY))
+        self.assertEqual(names, list(_WHEEL_INVENTORY))
 
     def _assert_sdist(self, sdist: Path | None) -> None:
         assert sdist is not None
@@ -159,11 +159,13 @@ class BuildArtifactTest(unittest.TestCase):
         )
         roots = {name.split("/", 1)[0] for name in raw_names}
         self.assertEqual(roots, {"projectkoios_applications-0.1.0.dev0"})
-        actual = [name.split("/", 1)[1] for name in raw_names if "/" in name]
+        relative_names = [name.split("/", 1)[1] for name in raw_names if "/" in name]
         self.assertEqual(
-            len(actual), len(set(actual)), "sdist has duplicate relative paths"
+            len(relative_names),
+            len(set(relative_names)),
+            "sdist has duplicate relative paths",
         )
-        self.assertEqual(sorted(actual), expected)
+        self.assertEqual(raw_names, expected)
 
     def _assert_isolated_import(self, wheel: Path) -> None:
         simulations = str(
