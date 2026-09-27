@@ -81,15 +81,9 @@ class BuildArtifactTest(unittest.TestCase):
     @staticmethod
     def _source_copy(destination: Path) -> Path:
         if (_ROOT / ".git").exists():
-            tree = subprocess.run(
-                ["git", "write-tree"],
-                cwd=_ROOT,
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout.strip()
+            subprocess.run(["git", "diff", "--quiet", "--"], cwd=_ROOT, check=True)
             archive = subprocess.run(
-                ["git", "archive", tree],
+                ["git", "archive", "HEAD"],
                 cwd=_ROOT,
                 check=True,
                 capture_output=True,
@@ -97,6 +91,19 @@ class BuildArtifactTest(unittest.TestCase):
             destination.mkdir()
             with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
                 tar.extractall(destination, filter="data")
+            staged_patch = subprocess.run(
+                ["git", "diff", "--cached", "--binary", "HEAD"],
+                cwd=_ROOT,
+                check=True,
+                capture_output=True,
+            ).stdout
+            if staged_patch:
+                subprocess.run(
+                    ["git", "apply", "--binary", "-"],
+                    cwd=destination,
+                    input=staged_patch,
+                    check=True,
+                )
         else:
             shutil.copytree(
                 _ROOT,
@@ -132,7 +139,9 @@ class BuildArtifactTest(unittest.TestCase):
 
     def _assert_wheel(self, wheel: Path) -> None:
         with zipfile.ZipFile(wheel) as archive:
-            self.assertEqual(set(archive.namelist()), _WHEEL_INVENTORY)
+            names = archive.namelist()
+        self.assertEqual(len(names), len(set(names)), "wheel has duplicate members")
+        self.assertEqual(sorted(names), sorted(_WHEEL_INVENTORY))
 
     def _assert_sdist(self, sdist: Path | None) -> None:
         assert sdist is not None
@@ -141,12 +150,20 @@ class BuildArtifactTest(unittest.TestCase):
             hashlib.sha256(inventory_bytes).hexdigest(),
             _SDIST_INVENTORY_SHA256,
         )
-        expected = set(inventory_bytes.decode("utf-8").splitlines())
+        expected = inventory_bytes.decode("utf-8").splitlines()
+        self.assertEqual(len(expected), len(set(expected)))
         with tarfile.open(sdist, "r:gz") as archive:
-            actual = {
-                name.split("/", 1)[1] for name in archive.getnames() if "/" in name
-            }
-        self.assertEqual(actual, expected)
+            raw_names = archive.getnames()
+        self.assertEqual(
+            len(raw_names), len(set(raw_names)), "sdist has duplicate members"
+        )
+        roots = {name.split("/", 1)[0] for name in raw_names}
+        self.assertEqual(roots, {"projectkoios_applications-0.1.0.dev0"})
+        actual = [name.split("/", 1)[1] for name in raw_names if "/" in name]
+        self.assertEqual(
+            len(actual), len(set(actual)), "sdist has duplicate relative paths"
+        )
+        self.assertEqual(sorted(actual), expected)
 
     def _assert_isolated_import(self, wheel: Path) -> None:
         simulations = str(

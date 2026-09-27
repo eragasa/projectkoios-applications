@@ -7,6 +7,7 @@
       "mode": "single",
       "path": "providers/quantumespresso/Si/primitive/campaign.toml",
       "policy": null,
+      "policy_profile": null,
       "projection_profile": "qe-sssp-pbe-efficiency",
       "provider": "quantum-espresso",
       "recipe_type": "PwDftScfSingleCalculationRecipe",
@@ -32,6 +33,7 @@
         ],
         "wavefunction_cutoff_ev": 408.1707936897154
       },
+      "sampling_profile": "single-qe",
       "structure_id": "Si.PrimitiveUnitCell",
       "wavefunction_cutoffs_ev": null
     },
@@ -55,6 +57,7 @@
         "required_consecutive_deltas": 2,
         "tolerance_mev_per_atom": 1.0
       },
+      "policy_profile": "energy-1mev-two-increments",
       "projection_profile": "qe-sssp-pbe-efficiency",
       "provider": "quantum-espresso",
       "recipe_type": "PwDftScfGridConvergenceRecipe",
@@ -80,6 +83,7 @@
         ],
         "wavefunction_cutoff_ev": 400.0
       },
+      "sampling_profile": "convergence-base",
       "structure_id": "Si.PrimitiveUnitCell",
       "wavefunction_cutoffs_ev": [
         300.0,
@@ -107,6 +111,7 @@
         "required_consecutive_deltas": 2,
         "tolerance_mev_per_atom": 1.0
       },
+      "policy_profile": "energy-1mev-two-increments",
       "projection_profile": "qe-sssp-pbe-efficiency",
       "provider": "quantum-espresso",
       "recipe_type": "PwDftScfKpointConvergenceRecipe",
@@ -132,6 +137,7 @@
         ],
         "wavefunction_cutoff_ev": 400.0
       },
+      "sampling_profile": "convergence-base",
       "structure_id": "Si.PrimitiveUnitCell",
       "wavefunction_cutoffs_ev": null
     },
@@ -151,6 +157,7 @@
         "required_consecutive_deltas": 2,
         "tolerance_mev_per_atom": 1.0
       },
+      "policy_profile": "energy-1mev-two-increments",
       "projection_profile": "qe-sssp-pbe-efficiency",
       "provider": "quantum-espresso",
       "recipe_type": "PwDftScfCutoffConvergenceRecipe",
@@ -176,6 +183,7 @@
         ],
         "wavefunction_cutoff_ev": 400.0
       },
+      "sampling_profile": "convergence-base",
       "structure_id": "Si.PrimitiveUnitCell",
       "wavefunction_cutoffs_ev": [
         300.0,
@@ -190,6 +198,7 @@
       "mode": "single",
       "path": "providers/vasp/Si/primitive/campaign.toml",
       "policy": null,
+      "policy_profile": null,
       "projection_profile": "vasp-static-scf",
       "provider": "vasp",
       "recipe_type": "PwDftScfSingleCalculationRecipe",
@@ -217,6 +226,7 @@
         ],
         "wavefunction_cutoff_ev": 400.0
       },
+      "sampling_profile": "single-vasp",
       "structure_id": "Si.PrimitiveUnitCell",
       "wavefunction_cutoffs_ev": null
     },
@@ -240,6 +250,7 @@
         "required_consecutive_deltas": 2,
         "tolerance_mev_per_atom": 1.0
       },
+      "policy_profile": "energy-1mev-two-increments",
       "projection_profile": "vasp-static-scf",
       "provider": "vasp",
       "recipe_type": "PwDftScfGridConvergenceRecipe",
@@ -267,6 +278,7 @@
         ],
         "wavefunction_cutoff_ev": 400.0
       },
+      "sampling_profile": "convergence-base",
       "structure_id": "Si.PrimitiveUnitCell",
       "wavefunction_cutoffs_ev": [
         300.0,
@@ -294,6 +306,7 @@
         "required_consecutive_deltas": 2,
         "tolerance_mev_per_atom": 1.0
       },
+      "policy_profile": "energy-1mev-two-increments",
       "projection_profile": "vasp-static-scf",
       "provider": "vasp",
       "recipe_type": "PwDftScfKpointConvergenceRecipe",
@@ -321,6 +334,7 @@
         ],
         "wavefunction_cutoff_ev": 400.0
       },
+      "sampling_profile": "convergence-base",
       "structure_id": "Si.PrimitiveUnitCell",
       "wavefunction_cutoffs_ev": null
     },
@@ -340,6 +354,7 @@
         "required_consecutive_deltas": 2,
         "tolerance_mev_per_atom": 1.0
       },
+      "policy_profile": "energy-1mev-two-increments",
       "projection_profile": "vasp-static-scf",
       "provider": "vasp",
       "recipe_type": "PwDftScfCutoffConvergenceRecipe",
@@ -367,6 +382,7 @@
         ],
         "wavefunction_cutoff_ev": 400.0
       },
+      "sampling_profile": "convergence-base",
       "structure_id": "Si.PrimitiveUnitCell",
       "wavefunction_cutoffs_ev": [
         300.0,
@@ -376,6 +392,42 @@
     }
   ],
   "provider_modules": [
+    {
+      "git_blob": "156b985b7951e5ab497dce733384f0865e99fc98",
+      "module": "projectkoios.integrations.quantumespresso",
+      "path": "src/python/projectkoios/integrations/quantumespresso/__init__.py",
+      "sha256": "028ba3b562d24b1681eab5417654e78b997473e1d5e8d9c3b4584226d4827ec1"
+    },
+    {
+      "git_blob": "89b3d8671f9f1caa256029edc811e0708e378119",
+      "module": "projectkoios.integrations.quantumespresso.pw",
+      "path": "src/python/projectkoios/integrations/quantumespresso/pw/__init__.py",
+      "sha256": "52f04275456d72bff4a3351298617f6462fb5a036465a1d702b173463eb9bb4e"
+    },
+    {
+      "git_blob": "0a9e2b02c0e10f4abc690a34a0269748680b7acc",
+      "module": "projectkoios.integrations.quantumespresso.pw.inputfile",
+      "path": "src/python/projectkoios/integrations/quantumespresso/pw/inputfile/__init__.py",
+      "sha256": "f9ee83ec706fc927d56c238edc89f108946fe332e5ad076ab19dcbca3de97c56"
+    },
+    {
+      "git_blob": "04ae47b675807f1a08beab800e5b6e4a91b7bb3f",
+      "module": "projectkoios.integrations.quantumespresso.pw.inputfile.base",
+      "path": "src/python/projectkoios/integrations/quantumespresso/pw/inputfile/base.py",
+      "sha256": "13e71a32bae25d7a1472fbb3d396a79b0b46f7b4acc5dbfe8d8a543e0df771fa"
+    },
+    {
+      "git_blob": "d9ac3bda0d820a4bfa380f0b114ed5062fdd9a6b",
+      "module": "projectkoios.integrations.quantumespresso.pw.inputfile.model",
+      "path": "src/python/projectkoios/integrations/quantumespresso/pw/inputfile/model.py",
+      "sha256": "0072c3a9378133e5a5083d2421a427de671d07fa67323575d3e1395e054a3bbc"
+    },
+    {
+      "git_blob": "5bfb84b21b162c05a44516fe9b60ca89e88e4749",
+      "module": "projectkoios.integrations.quantumespresso.pw.scf",
+      "path": "src/python/projectkoios/integrations/quantumespresso/pw/scf/__init__.py",
+      "sha256": "0a4faccdb3d48febfba5f04375e1c1192070cb3964e4fc17f7c642334c891f6e"
+    },
     {
       "git_blob": "abac8606f91cfbd71c38d55dd86bc3ee28c9deef",
       "module": "projectkoios.integrations.quantumespresso.pw.scf.configuration",
@@ -387,6 +439,48 @@
       "module": "projectkoios.integrations.quantumespresso.pw.scf.projection",
       "path": "src/python/projectkoios/integrations/quantumespresso/pw/scf/projection.py",
       "sha256": "6d7d9bf4d3a7f87f65626934ee8a0070bbb4645c84c331021710cc2f15667df4"
+    },
+    {
+      "git_blob": "4c1f128f89fc6906ca2d236f9dc474473dece329",
+      "module": "projectkoios.integrations.vasp",
+      "path": "src/python/projectkoios/integrations/vasp/__init__.py",
+      "sha256": "9ba626e0ce2c1bc366b39205f534595e4e42c4413e1b1be6e833db860455a9c4"
+    },
+    {
+      "git_blob": "c47df6b2ba581f72ad77c46ad352f14468cab8fd",
+      "module": "projectkoios.integrations.vasp.calculation",
+      "path": "src/python/projectkoios/integrations/vasp/calculation.py",
+      "sha256": "f6e80f5e1fff94b02669cdfc7484d7d3ef87023b51f29541e5a5342494920cd8"
+    },
+    {
+      "git_blob": "619c9f097aa8db2b321605df1d529a540c8a2e7f",
+      "module": "projectkoios.integrations.vasp.ibrion",
+      "path": "src/python/projectkoios/integrations/vasp/ibrion.py",
+      "sha256": "f46584bf57312add8d0e058e8ea774bd59d094c88d422f93595f50677ca12e6a"
+    },
+    {
+      "git_blob": "2929d9e5d1a5610a446fb047951ead72bbf84c59",
+      "module": "projectkoios.integrations.vasp.incar",
+      "path": "src/python/projectkoios/integrations/vasp/incar.py",
+      "sha256": "ca620a2a641a7478d2c91089d99ab8c2679e3e40eb1246eb6890cb6640d11b0a"
+    },
+    {
+      "git_blob": "dda327bce8f7facecb2d2697a039be01ebbac0ba",
+      "module": "projectkoios.integrations.vasp.kpoints",
+      "path": "src/python/projectkoios/integrations/vasp/kpoints.py",
+      "sha256": "22b7aa10dd6c6c6ab94a9f81a8c7b7bdc323111f2799f2845e5dd821c2dbe17c"
+    },
+    {
+      "git_blob": "1080ac823f78cec173b829ae2de3fdba02971dfa",
+      "module": "projectkoios.integrations.vasp.poscar",
+      "path": "src/python/projectkoios/integrations/vasp/poscar.py",
+      "sha256": "5f40995fdf6b4634afca069cd25e2fe5ebea2c0c94cb485edd2d264c8a8b1b30"
+    },
+    {
+      "git_blob": "76e23a9b449d33658d7fefcb0ffa6c83ccb20578",
+      "module": "projectkoios.integrations.vasp.pw_dft_scf",
+      "path": "src/python/projectkoios/integrations/vasp/pw_dft_scf/__init__.py",
+      "sha256": "ff55b7c3a794c55a62354fbf0ff8481551e30c592f501b3ac6885acedad9321b"
     },
     {
       "git_blob": "0aac1d8c8c038c9c399b125bf737c1060b856c01",

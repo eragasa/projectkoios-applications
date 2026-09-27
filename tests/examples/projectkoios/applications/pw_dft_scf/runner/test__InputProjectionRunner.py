@@ -5,6 +5,7 @@ import importlib
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -19,7 +20,7 @@ from examples.projectkoios.applications.pw_dft_scf.runner.render_inputs import (
     InputProjectionRunner,
 )
 
-_FIXTURE_SHA256 = "90a3384f3eb80c373e56d358370a75e41f647eaddca2368e1d15aee36dd4611e"
+_FIXTURE_SHA256 = "bfc9f867474c86d20359a23563cf3d6277928bcf435a126357fd2bdc4732f57e"
 
 
 class InputProjectionRunnerTest(unittest.TestCase):
@@ -55,8 +56,14 @@ class InputProjectionRunnerTest(unittest.TestCase):
                 self.assertEqual(declaration["integration"], expected["provider"])
                 self.assertEqual(declaration["structure_id"], expected["structure_id"])
                 self.assertEqual(
+                    declaration["sampling_profile"], expected["sampling_profile"]
+                )
+                self.assertEqual(
                     declaration.get("coordinate_profile"),
                     expected["coordinate_profile"],
+                )
+                self.assertEqual(
+                    declaration.get("policy_profile"), expected["policy_profile"]
                 )
 
                 loaded = environment.loader.load(campaign_path)
@@ -117,7 +124,42 @@ class InputProjectionRunnerTest(unittest.TestCase):
                 for fragment in expected["rendered_fragments"]:
                     self.assertIn(fragment, rendered_text)
 
-    def test_ambient_provider_modules_are_exact_candidate_git_objects(self) -> None:
+    def test_operational_provider_graph_is_exact_candidate_graph(self) -> None:
+        expected_modules = {
+            item["module"]: item["sha256"] for item in self.fixture["provider_modules"]
+        }
+        projection_module = importlib.import_module(
+            "projectkoios.integrations.quantumespresso.pw.scf.projection"
+        )
+        provider_root = Path(projection_module.__file__ or "").resolve().parents[5]
+        paths = [item["path"] for item in self.fixture["campaigns"]]
+        script = f"""
+import hashlib, json, sys, tempfile
+from pathlib import Path
+sys.path[:0] = [{str(provider_root)!r}, {str(self.repository / "src/python")!r}, {str(self.repository)!r}]
+from examples.projectkoios.applications.pw_dft_scf.runner.environment import WorkflowRunnerEnvironment
+from examples.projectkoios.applications.pw_dft_scf.runner.render_inputs import InputProjectionRunner
+example = Path({str(self.example)!r})
+environment = WorkflowRunnerEnvironment.load(example / 'runner/config/runner.toml')
+with tempfile.TemporaryDirectory() as directory:
+    for index, relative in enumerate({paths!r}):
+        InputProjectionRunner(environment).render(example / relative, Path(directory) / str(index))
+prefixes = ('projectkoios.integrations.quantumespresso', 'projectkoios.integrations.vasp')
+loaded = {{
+    name: hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()
+    for name, module in sys.modules.items()
+    if name.startswith(prefixes) and getattr(module, '__file__', None)
+}}
+print(json.dumps(loaded, sort_keys=True))
+"""
+        completed = subprocess.run(
+            [sys.executable, "-I", "-c", script],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(json.loads(completed.stdout), expected_modules)
+
         simulations_repository = os.environ.get("PROJECTKOIOS_SIMULATIONS_REPOSITORY")
         if simulations_repository is not None:
             tree = subprocess.run(
