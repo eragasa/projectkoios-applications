@@ -1,0 +1,207 @@
+{
+  "evidence_id": "si-primitive-qe75-actual1-grid",
+  "extension_observations": [
+    {
+      "mesh_density": 12,
+      "total_energy_ev_per_atom": -155.37415826903566,
+      "wavefunction_cutoff_ev": 408.17079368981996
+    },
+    {
+      "mesh_density": 12,
+      "total_energy_ev_per_atom": -155.3746965102556,
+      "wavefunction_cutoff_ev": 476.19925930478996
+    },
+    {
+      "mesh_density": 12,
+      "total_energy_ev_per_atom": -155.37501386304768,
+      "wavefunction_cutoff_ev": 544.22772491976
+    },
+    {
+      "mesh_density": 14,
+      "total_energy_ev_per_atom": -155.37421793,
+      "wavefunction_cutoff_ev": 408.17079368981996
+    },
+    {
+      "mesh_density": 14,
+      "total_energy_ev_per_atom": -155.37475637530534,
+      "wavefunction_cutoff_ev": 476.19925930478996
+    },
+    {
+      "mesh_density": 14,
+      "total_energy_ev_per_atom": -155.37507372809745,
+      "wavefunction_cutoff_ev": 544.22772491976
+    }
+  ],
+  "initial_observations": [
+    {
+      "mesh_density": 10,
+      "total_energy_ev_per_atom": -155.34266183776904,
+      "wavefunction_cutoff_ev": 204.08539684490998
+    },
+    {
+      "mesh_density": 10,
+      "total_energy_ev_per_atom": -155.3617777005499,
+      "wavefunction_cutoff_ev": 272.11386245988
+    },
+    {
+      "mesh_density": 10,
+      "total_energy_ev_per_atom": -155.37055867883456,
+      "wavefunction_cutoff_ev": 340.14232807485
+    },
+    {
+      "mesh_density": 10,
+      "total_energy_ev_per_atom": -155.3738692841137,
+      "wavefunction_cutoff_ev": 408.17079368981996
+    },
+    {
+      "mesh_density": 10,
+      "total_energy_ev_per_atom": -155.37440861378911,
+      "wavefunction_cutoff_ev": 476.19925930478996
+    },
+    {
+      "mesh_density": 10,
+      "total_energy_ev_per_atom": -155.37472617066658,
+      "wavefunction_cutoff_ev": 544.22772491976
+    },
+    {
+      "mesh_density": 2,
+      "total_energy_ev_per_atom": -154.0634021884266,
+      "wavefunction_cutoff_ev": 204.08539684490998
+    },
+    {
+      "mesh_density": 2,
+      "total_energy_ev_per_atom": -154.0831988120629,
+      "wavefunction_cutoff_ev": 272.11386245988
+    },
+    {
+      "mesh_density": 2,
+      "total_energy_ev_per_atom": -154.09293178069538,
+      "wavefunction_cutoff_ev": 340.14232807485
+    },
+    {
+      "mesh_density": 2,
+      "total_energy_ev_per_atom": -154.09606925352955,
+      "wavefunction_cutoff_ev": 408.17079368981996
+    },
+    {
+      "mesh_density": 2,
+      "total_energy_ev_per_atom": -154.09673851757424,
+      "wavefunction_cutoff_ev": 476.19925930478996
+    },
+    {
+      "mesh_density": 2,
+      "total_energy_ev_per_atom": -154.09702893109394,
+      "wavefunction_cutoff_ev": 544.22772491976
+    },
+    {
+      "mesh_density": 4,
+      "total_energy_ev_per_atom": -155.2483932963401,
+      "wavefunction_cutoff_ev": 204.08539684490998
+    },
+    {
+      "mesh_density": 4,
+      "total_energy_ev_per_atom": -155.26813665368783,
+      "wavefunction_cutoff_ev": 272.11386245988
+    },
+    {
+      "mesh_density": 4,
+      "total_energy_ev_per_atom": -155.27678123489892,
+      "wavefunction_cutoff_ev": 340.14232807485
+    },
+    {
+      "mesh_density": 4,
+      "total_energy_ev_per_atom": -155.28012932386264,
+      "wavefunction_cutoff_ev": 408.17079368981996
+    },
+    {
+      "mesh_density": 4,
+      "total_energy_ev_per_atom": -155.28070103508767,
+      "wavefunction_cutoff_ev": 476.19925930478996
+    },
+    {
+      "mesh_density": 4,
+      "total_energy_ev_per_atom": -155.2810207008476,
+      "wavefunction_cutoff_ev": 544.22772491976
+    },
+    {
+      "mesh_density": 6,
+      "total_energy_ev_per_atom": -155.33104801811925,
+      "wavefunction_cutoff_ev": 204.08539684490998
+    },
+    {
+      "mesh_density": 6,
+      "total_energy_ev_per_atom": -155.3499355773695,
+      "wavefunction_cutoff_ev": 272.11386245988
+    },
+    {
+      "mesh_density": 6,
+      "total_energy_ev_per_atom": -155.3589173076562,
+      "wavefunction_cutoff_ev": 340.14232807485
+    },
+    {
+      "mesh_density": 6,
+      "total_energy_ev_per_atom": -155.3622479813327,
+      "wavefunction_cutoff_ev": 408.17079368981996
+    },
+    {
+      "mesh_density": 6,
+      "total_energy_ev_per_atom": -155.3627851340972,
+      "wavefunction_cutoff_ev": 476.19925930478996
+    },
+    {
+      "mesh_density": 6,
+      "total_energy_ev_per_atom": -155.36310119434845,
+      "wavefunction_cutoff_ev": 544.22772491976
+    },
+    {
+      "mesh_density": 8,
+      "total_energy_ev_per_atom": -155.34092058116315,
+      "wavefunction_cutoff_ev": 204.08539684490998
+    },
+    {
+      "mesh_density": 8,
+      "total_energy_ev_per_atom": -155.36019671900902,
+      "wavefunction_cutoff_ev": 272.11386245988
+    },
+    {
+      "mesh_density": 8,
+      "total_energy_ev_per_atom": -155.36898354774172,
+      "wavefunction_cutoff_ev": 340.14232807485
+    },
+    {
+      "mesh_density": 8,
+      "total_energy_ev_per_atom": -155.37228109155546,
+      "wavefunction_cutoff_ev": 408.17079368981996
+    },
+    {
+      "mesh_density": 8,
+      "total_energy_ev_per_atom": -155.37282457096725,
+      "wavefunction_cutoff_ev": 476.19925930478996
+    },
+    {
+      "mesh_density": 8,
+      "total_energy_ev_per_atom": -155.3731420598163,
+      "wavefunction_cutoff_ev": 544.22772491976
+    }
+  ],
+  "integration_id": "quantum-espresso",
+  "policy": {
+    "cutoff_increment_ev": 68.02846561497,
+    "extension_steps": 2,
+    "maximum_cutoff_ev": 1088.45544983952,
+    "maximum_grid_points": 80,
+    "maximum_mesh_density": 20,
+    "mesh_increment": 2,
+    "required_consecutive_deltas": 2,
+    "tolerance_mev_per_atom": 1.0
+  },
+  "schema_version": 1,
+  "source": {
+    "commit": "24dffe10c29e60afcd5fe07aaacb84921a41a43d",
+    "manifest_path": "examples/projectkoios/integrations/quantumespresso/pw/scf/Si/primitive/convergence/joint/evidence/manifest.json",
+    "manifest_sha256": "94cfaa284e10731d04c241479be464c92e295291c4bb4f795e9e02f232a5c8fc",
+    "normalization": "Ry to eV using 13.605693122994; total energy divided by declared atom count",
+    "repository": "https://github.com/eragasa/projectkoios-simulations",
+    "tree": "b7897a05de39072126e6162ce6e8b8fb25be5f31"
+  }
+}

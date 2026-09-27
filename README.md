@@ -33,8 +33,10 @@ Cross-provider example validation uses the immutable combined
 `projectkoios-simulations` commit
 `24dffe10c29e60afcd5fe07aaacb84921a41a43d` (tree
 `b7897a05de39072126e6162ce6e8b8fb25be5f31`). Both VASP and Quantum ESPRESSO
-campaign projection, QE relaxation composition, and replay composition are
-verified without calculator execution.
+campaign projections are checked byte-for-byte, QE relaxation composition is
+exercised through its non-authorizing handoff, and the retained 30+6 QE dataset
+is replayed from provider-normalized, provenance-bound evidence without
+calculator execution.
 
 ## Development
 

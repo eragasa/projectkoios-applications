@@ -68,7 +68,7 @@ combined_parents = [
   "b7ca86e35989cac7c60b5a72ba1c40f3113972f3",
   "3f02941d7fb76bfc567b6d3f71e2be788bb32ac2",
 ]
-combined_validation = "Provider imports, all eight VASP/QE SCF campaign projections, QE relaxation composition, replay composition, and application verification passed without calculator execution."
+combined_validation = "Provider imports, exact-output checks for all eight VASP/QE SCF campaign projections, QE relaxation composition, and provenance-bound replay of 30 initial plus 6 adaptive provider-normalized observations passed without calculator execution."
 
 [[provider_handoffs]]
 provider = "vasp"

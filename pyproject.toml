@@ -35,6 +35,8 @@ development = [
     "numpy>=2.3,<3",
     "pytest>=9.1,<10",
     "ruff>=0.16,<1",
+    "setuptools==84.0.0",
+    "SNAKES==0.9.33",
 ]
 
 [tool.setuptools]

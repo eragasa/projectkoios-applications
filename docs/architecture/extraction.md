@@ -30,6 +30,7 @@ The neutral simulation API originates at commit `51427a0`. VASP and QE handoffs
 are recorded at `a736800` and `48d3c43`. Combined-provider behavior is verified
 against immutable simulations commit `24dffe10c29e60afcd5fe07aaacb84921a41a43d`,
 tree `b7897a05de39072126e6162ce6e8b8fb25be5f31`, whose parents are the exact
-reviewed VASP and QE heads. Validation covers provider imports, all eight SCF
-campaign projections, QE relaxation composition, and replay composition without
-calculator execution.
+reviewed VASP and QE heads. Validation covers provider imports, exact rendered
+identities for all eight SCF campaign projections, QE relaxation composition,
+and provenance-bound replay of the provider-normalized 30+6 retained dataset
+without calculator execution.
