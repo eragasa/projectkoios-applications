@@ -1,0 +1,861 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "byte_size": 275,
+      "git_blob": "87b46357544fafbaf9b72f778d37eed9f6eb3f43",
+      "mode": "100644",
+      "sha256": "df02f7b7d0d12edd52720c422563156d05801eacbbc58b20db640bb76fe32efa",
+      "target_path": "docs/architecture/projectkoios/applications/index.md"
+    },
+    {
+      "byte_size": 215,
+      "git_blob": "6fce68071d1bc25b2291041e7bce4187f04a7b1f",
+      "mode": "100644",
+      "sha256": "f5e34762e88fc8cd4807c2ba9cfac878a6a996a650a0355501d5b1bfab1b2c40",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/comparison/PwDftScfComparator/index.md"
+    },
+    {
+      "byte_size": 541,
+      "git_blob": "d794b7419c8e952551621ca32394e5bba7706705",
+      "mode": "100644",
+      "sha256": "6007eaf7e39705d1fa9a963b903d8739907648aaac1c3d3e9169e9e2200ffa93",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/comparison/PwDftScfComparisonAnalysis/index.md"
+    },
+    {
+      "byte_size": 204,
+      "git_blob": "7ede2f7629a70759d722168cb2ce715eff44c1c0",
+      "mode": "100644",
+      "sha256": "562cdf5db5da2e987b4537db2b11431e511fb034c9622d915a5c50d10dea2610",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/comparison/PwDftScfComparisonInterpretation/index.md"
+    },
+    {
+      "byte_size": 243,
+      "git_blob": "4049545ab220435867a92560854887eaad637b21",
+      "mode": "100644",
+      "sha256": "b1950df361cf2810a79bf96fd8cba7c85c359764e696a6fad3786bdd81bb85da",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/comparison/PwDftScfComparisonRequest/index.md"
+    },
+    {
+      "byte_size": 456,
+      "git_blob": "a2f9e51d1e8d7dc88d0930dfcd3999f52093875f",
+      "mode": "100644",
+      "sha256": "ecd42882082c3a8852b4596bd2c77463ad46ec373f67e687a29c549638513a03",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/comparison/PwDftScfEnergyAlignment/index.md"
+    },
+    {
+      "byte_size": 344,
+      "git_blob": "68fa17ff8ae8fb772f8154839e689aeb6a5c7405",
+      "mode": "100644",
+      "sha256": "6754c4f0d2cd69edaf732be117c6eac4da4a5c4328cf5cca24ca8b4737a8b158",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/comparison/PwDftScfEnergyAlignmentDeclaration/index.md"
+    },
+    {
+      "byte_size": 156,
+      "git_blob": "244bb3cf6b44d8110d359f3bb3f2910b73d24191",
+      "mode": "100644",
+      "sha256": "51c00fe282d0d6c35705bc4bb1b79cc75597240c506aab98d4e856f07e5041ae",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/comparison/PwDftScfEnergyAlignmentKind/index.md"
+    },
+    {
+      "byte_size": 646,
+      "git_blob": "1591847786c6d001d6d28a7c320b4e10ec3e224c",
+      "mode": "100644",
+      "sha256": "a860e8db1294c954dde2ac7e3f9431221f6618e1b7d5f7ecded8fb67f4e7a67d",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/comparison/index.md"
+    },
+    {
+      "byte_size": 80,
+      "git_blob": "9e23d32adec84f72a7273cf7f5983e9711d3f5f8",
+      "mode": "100644",
+      "sha256": "1289c633dc4bc746696c59a4c46effd784862a4edd3968fb5af859a5942b62da",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/configuration/PwDftScfCampaignConfiguration/index.md"
+    },
+    {
+      "byte_size": 67,
+      "git_blob": "2ab29ef0d447403ea347b83c931bf6c3c51aaf45",
+      "mode": "100644",
+      "sha256": "8b07ec2ef8f2cc8278959ccbcf506e8c96b17fd22b987b946b888237641883ac",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/configuration/PwDftScfRuntimeConfiguration/index.md"
+    },
+    {
+      "byte_size": 191,
+      "git_blob": "0e7c425bc8ec636aaec37027be0f219a0bd1a868",
+      "mode": "100644",
+      "sha256": "2d916abe5857608ca875ec1a3199165a61ade94a1d8f3fe0e4b31c015bafeac9",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/configuration/index.md"
+    },
+    {
+      "byte_size": 84,
+      "git_blob": "238f3ff063746aaed8c2d7961903e1dcfdc40533",
+      "mode": "100644",
+      "sha256": "200ad3d9c930da8f8b0160c27b0c1ee5699b7e9624af7e553efdd31f8f8474bb",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/assessment/EnergyAxisConvergenceAssessmentRequest/index.md"
+    },
+    {
+      "byte_size": 85,
+      "git_blob": "709c4ece722fb0aab599cfa559e91a7e625caf5c",
+      "mode": "100644",
+      "sha256": "3455347ab16a0bc6339ec9eece4645187bab29aa8af6678df429def8f4974f62",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/assessment/EnergyAxisConvergenceAssessor/index.md"
+    },
+    {
+      "byte_size": 76,
+      "git_blob": "e39314f54ae870a945a077685d578153574f598b",
+      "mode": "100644",
+      "sha256": "133dbbb9a1634460b3d07f3959fc45b5456a6fabb5beeb1264c243974a415cdd",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/assessment/EnergyGridConvergenceAssessmentRequest/index.md"
+    },
+    {
+      "byte_size": 85,
+      "git_blob": "8ce9b9b613ee797b4345ea2cf1836ea7ba4cda79",
+      "mode": "100644",
+      "sha256": "8b34a51deaa2333942e580159b0148ad0919f7696c6d7c8565a808be8363de47",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/assessment/EnergyGridConvergenceAssessor/index.md"
+    },
+    {
+      "byte_size": 229,
+      "git_blob": "ecfef61534e3a31311cb01004d8319607930bf9d",
+      "mode": "100644",
+      "sha256": "b2058137af3f63b92b6a2422e016412b306655f06b2ea146dfe13798380adf02",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/assessment/index.md"
+    },
+    {
+      "byte_size": 168,
+      "git_blob": "00dd4a0c72d6f0b3f6c8c71387e3a2b407bbf35e",
+      "mode": "100644",
+      "sha256": "44726589785a1e11bc864495de6cd9799773e2d43fca3cf5e769e24144b4a6dd",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/base/PwDftScfConvergenceAssessment/index.md"
+    },
+    {
+      "byte_size": 68,
+      "git_blob": "0cca491b018b1cfe0aaabcf83afd4b5ee6536fa7",
+      "mode": "100644",
+      "sha256": "5ec926a58bb8e2e60b30f00f3849adc58414bc1d3a55585a3fef8c7e231c20b8",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/base/PwDftScfConvergenceAxis/index.md"
+    },
+    {
+      "byte_size": 83,
+      "git_blob": "3a2a65c8460c379479913afe86da5fc137a0a7d5",
+      "mode": "100644",
+      "sha256": "9a0993365f1b4c3af8256f21e80c5318bb627809dc661e1b7b82700eaef1d22a",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/base/PwDftScfConvergenceCoordinate/index.md"
+    },
+    {
+      "byte_size": 79,
+      "git_blob": "cd1c841ff5c6042ba8db31228aa008d3139ac2df",
+      "mode": "100644",
+      "sha256": "1f098d39a84ad69ab000a51f297ccef11c219014168dc9629c6f0bb3ae56043d",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/base/PwDftScfEnergyObservation/index.md"
+    },
+    {
+      "byte_size": 189,
+      "git_blob": "c8a3713bc1bffacc1ee88c0fdae695157eb5471d",
+      "mode": "100644",
+      "sha256": "22d89bb6058820d57c2a41100d2962b3d187ccbf8d1a438a1ac3ae79e311dfef",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/base/index.md"
+    },
+    {
+      "byte_size": 177,
+      "git_blob": "9fc1366d72ea049a160f612a155e42c6dcef8d0f",
+      "mode": "100644",
+      "sha256": "b1e77baea24dedfdfd3be516fd2304f0daaa5f4a01ae47b5afce7baf58beed40",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/comparison/PwDftScfConvergenceComparator/index.md"
+    },
+    {
+      "byte_size": 293,
+      "git_blob": "0ffc9187f776330f6e7bc61a824bf1934651525a",
+      "mode": "100644",
+      "sha256": "3fe92af2cca4210cb0e1892fa94978ee1f1aaee801ea56ab0f49022f114db07a",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/comparison/PwDftScfConvergenceComparisonAnalysis/index.md"
+    },
+    {
+      "byte_size": 162,
+      "git_blob": "f05ba505c585b0fb41709ec6d40c4ec938cb8cb7",
+      "mode": "100644",
+      "sha256": "83bb975131930d993f7d414915db6d85f9a67e75a68f13e3bb646772b3d3339b",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/comparison/PwDftScfConvergenceComparisonInterpretation/index.md"
+    },
+    {
+      "byte_size": 181,
+      "git_blob": "307822d7ecc388c88638fdecfe8165f2854dde9d",
+      "mode": "100644",
+      "sha256": "8769c891d04f782206b830a828199c47d32c497f0edc8215eab7f9ce3425d461",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/comparison/PwDftScfConvergenceComparisonRequest/index.md"
+    },
+    {
+      "byte_size": 251,
+      "git_blob": "89560d31e7a174c1718d633c97e80d0d1e74fed3",
+      "mode": "100644",
+      "sha256": "ff99a42bfbd091391fad8159612bb5a6bf82f729f92f4a185bb09fbd0d60d6a9",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/comparison/PwDftScfConvergenceTest/index.md"
+    },
+    {
+      "byte_size": 94,
+      "git_blob": "80626e047c7bf74933d968e58571d3da1556e464",
+      "mode": "100644",
+      "sha256": "7f0581ef31f95012ce6e9e55f1d2f31d5c6121084ce107a1570f7d0f3f7144f8",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/comparison/PwDftScfConvergenceTestKind/index.md"
+    },
+    {
+      "byte_size": 487,
+      "git_blob": "e2ca82d07562952e624d55fac9de229f34e0eeab",
+      "mode": "100644",
+      "sha256": "43ea13bea6c2631adbb9e37ef9f627b015470e62e864a7a350e71f77d242d76c",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/comparison/index.md"
+    },
+    {
+      "byte_size": 62,
+      "git_blob": "6db6bc7a2bea5267935ce0d0ad13777969d28831",
+      "mode": "100644",
+      "sha256": "7f978c49993d6caa8e3c9d54d584740984044e47680ecea489e4c7637483c8ff",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/controller/ExtendPwDftScfConvergence/index.md"
+    },
+    {
+      "byte_size": 52,
+      "git_blob": "6a89fba7facc80549b9828a6045ae5f8568d97c5",
+      "mode": "100644",
+      "sha256": "e4ef41bfcf47c9fd04773502e0887cd7ede1e507b5ee86ca8957c31855966109",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/controller/PwDftScfConvergenceAccepted/index.md"
+    },
+    {
+      "byte_size": 59,
+      "git_blob": "a9847bea85ebcee1faadfefe585286e9cbf11069",
+      "mode": "100644",
+      "sha256": "8d24b63b1707ed836e9e7315384749aace0f6d4f7a824b09244e69bb9cebe52a",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/controller/PwDftScfConvergenceBudgetExhausted/index.md"
+    },
+    {
+      "byte_size": 112,
+      "git_blob": "5fa13485cd84dd87868533039231618584b3ccad",
+      "mode": "100644",
+      "sha256": "702de086d40ddba30040dc06b63103ceb597376473749b8bfa0637c9c9034ab5",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/controller/PwDftScfConvergenceController/index.md"
+    },
+    {
+      "byte_size": 247,
+      "git_blob": "eae64ab97d426500a459b4a29e1dcf5d47bb1b5f",
+      "mode": "100644",
+      "sha256": "5205f54e0eefeab3f53e9e55a0dd83fd0508924753198cc44aa5310f11aadd78",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/controller/index.md"
+    },
+    {
+      "byte_size": 185,
+      "git_blob": "c2252344a29c32fa2bda385de0c8ad941a115e6d",
+      "mode": "100644",
+      "sha256": "77958fff1a6d0d83c00ec8d8a7dbccfd8946bf50347f88474bbb254cbd0f11e9",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/index.md"
+    },
+    {
+      "byte_size": 222,
+      "git_blob": "c43d6640190b85feda052ab276bc50a8d9eeb09d",
+      "mode": "100644",
+      "sha256": "d32dc98b7851e4cecc710a827d2f20a57a55be21aaf29c43f716cd4f2b754c2c",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/policy/PwDftScfConvergencePolicy/index.md"
+    },
+    {
+      "byte_size": 144,
+      "git_blob": "1195c438067a0a28bccdc5bc43cefe959c69e709",
+      "mode": "100644",
+      "sha256": "29634685ec07392042e14563c86bb9561e4248cc625ca2661b82e4734efd51e5",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/convergence/policy/index.md"
+    },
+    {
+      "byte_size": 413,
+      "git_blob": "0c817b7d4dc968e56a67c25e5696ab8e8ce1618c",
+      "mode": "100644",
+      "sha256": "37b6a4ce56af06529ead4fd5e624c791ab8f2101935ad7c8bd25b0ef30ef9c18",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/index.md"
+    },
+    {
+      "byte_size": 120,
+      "git_blob": "618d96fbce909f669587786b1a29311634f41f9e",
+      "mode": "100644",
+      "sha256": "f976672ea494245407883d520b5104af48bc6f4cc40a03a1084fa9e491c7b80f",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/recipe/PwDftScfCutoffConvergenceRecipe/index.md"
+    },
+    {
+      "byte_size": 136,
+      "git_blob": "22e928b7cbaa4df36f9eb201721895e12af219a1",
+      "mode": "100644",
+      "sha256": "d7bc5462fdd3120ef66cd24e6002d1f9759a604e2118ebfb92973184e196d3aa",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/recipe/PwDftScfGridConvergenceRecipe/index.md"
+    },
+    {
+      "byte_size": 111,
+      "git_blob": "c8b79ec8984c004f33b1f78af594be2c6a2f9770",
+      "mode": "100644",
+      "sha256": "a5274008774941ab426dfbfc3755adf715ba27c1e416d7d81bc013e16538ff54",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/recipe/PwDftScfKpointConvergenceRecipe/index.md"
+    },
+    {
+      "byte_size": 106,
+      "git_blob": "551c224d3c2c632ef374b75b025b55bd721cabba",
+      "mode": "100644",
+      "sha256": "483e8c6d1766d45e621ffbbdf1d0c18bff1ed6f6d65b30782eff18218cded804",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/recipe/PwDftScfRecipe/index.md"
+    },
+    {
+      "byte_size": 82,
+      "git_blob": "d46efd6d692bd3a8e53396b365cf14f999e691a0",
+      "mode": "100644",
+      "sha256": "f6f43588e31410651f7d8140aaa395e495dafb4895d8849d8124630f9f2c450d",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/recipe/PwDftScfSingleCalculationRecipe/index.md"
+    },
+    {
+      "byte_size": 232,
+      "git_blob": "515c4f834a5a65b7cd9f8f7eb9c9d6e03c9683e7",
+      "mode": "100644",
+      "sha256": "55a2fb157232b2b269149278fd5de73a3a36c2e57f294878f64e2b0b5d7095d3",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/recipe/index.md"
+    },
+    {
+      "byte_size": 144,
+      "git_blob": "8487f3f65847daec2c737b878c9e51d483d492da",
+      "mode": "100644",
+      "sha256": "fd776671e6772896fbc028631e5469cfb5bdf5e29f8d55e5a5760e1f5eac963f",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/workflow/base/PwDftScfWorkflowStatus/index.md"
+    },
+    {
+      "byte_size": 94,
+      "git_blob": "0d159fd95b62a5813c3893b7ac208f1b6ad2e4e2",
+      "mode": "100644",
+      "sha256": "f34f6a5bac26bb816a7317798c74f2f3ffdab0fe4223092a5478c19f1ca4f9d1",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/workflow/base/index.md"
+    },
+    {
+      "byte_size": 71,
+      "git_blob": "0bd6124fffdf43809cfae1b5c78729893fb2e526",
+      "mode": "100644",
+      "sha256": "c8efd8cb3eb5a18f5512a556d469f3d3666485047fefedf60b042f5c50fc496c",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/workflow/definition/PwDftScfWorkflowDefinition/index.md"
+    },
+    {
+      "byte_size": 127,
+      "git_blob": "2c2fd2869c2a661b0d5d46eb253a675de08eaaca",
+      "mode": "100644",
+      "sha256": "62c8f485e5d4901c86b52bfee4c6c9b9430eb38f177bc38cd7d1c655cf6301f5",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/workflow/definition/index.md"
+    },
+    {
+      "byte_size": 85,
+      "git_blob": "e3303859ced18a34309ee93fbce9d54656f10345",
+      "mode": "100644",
+      "sha256": "a394f6a109d56673ec889ba86d538248a683e3ad4cd7a1c795e12580880ae22c",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/workflow/facade/PwDftScfWorkflowFacade/index.md"
+    },
+    {
+      "byte_size": 142,
+      "git_blob": "2501c060948616e8fd507fa4aa66ce61dea80874",
+      "mode": "100644",
+      "sha256": "2460c2e183cce43afdcce58981a713ab61a4395e60ba07cd9e5d7150dfdb13a3",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/workflow/facade/index.md"
+    },
+    {
+      "byte_size": 125,
+      "git_blob": "0f0812652470ae2d8c63a5783494b300d815a4f2",
+      "mode": "100644",
+      "sha256": "6ab6bb36bb1635f1d9bb990ba8eb18a34a3a22c2d97ba65716b54361a9e63dc2",
+      "target_path": "docs/architecture/projectkoios/applications/pw_dft_scf/workflow/index.md"
+    },
+    {
+      "byte_size": 318,
+      "git_blob": "11d7d5ea1c2d7722e39c22273691435339e0decb",
+      "mode": "100644",
+      "sha256": "18ac43a02566d773ec670bfba04044bab836c86d13d97b48d041626fc664fe5b",
+      "target_path": "examples/projectkoios/applications/README.md"
+    },
+    {
+      "byte_size": 689,
+      "git_blob": "586ba5f8466f1115e6085b2b797fda4d903a2a4b",
+      "mode": "100644",
+      "sha256": "46e3843f31ac11ed6a64e3f6a838c2a4002803a085197aa31e4e4bd25b764ac8",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/README.md"
+    },
+    {
+      "byte_size": 579,
+      "git_blob": "e8362fcf3ceb971538d55cc85f150cb650387683",
+      "mode": "100644",
+      "sha256": "0f89ad920834e0544c9cb402e0181c5858dfb3f25176f650e9428a3cb4741aa3",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/comparison/README.md"
+    },
+    {
+      "byte_size": 501,
+      "git_blob": "7d4c408b5bcd2b330b646b9b757cdabe123d1dc8",
+      "mode": "100644",
+      "sha256": "d23236b21f0ae7b3987205bb813cd1dbaf5883fab649c42dba4564012512d508",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/comparison/comparison.toml"
+    },
+    {
+      "byte_size": 1149,
+      "git_blob": "5c485926bb4a3bb496a04d44554b9171555eb780",
+      "mode": "100644",
+      "sha256": "457530092bac67bafeca2c944bb63137147e06f4b743d1786e3bf8fbcd674827",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/convergence/README.md"
+    },
+    {
+      "byte_size": 212,
+      "git_blob": "9750ba508e0233d65c7f10167cd139caf9cf3747",
+      "mode": "100644",
+      "sha256": "837a18caad34c428826826a4e7de6d2af610fe08df0ef36b65be5a63936af11d",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/convergence/joint/README.md"
+    },
+    {
+      "byte_size": 308,
+      "git_blob": "fb1f6b345cbc14e651ed2570018b7cd5d5123a4d",
+      "mode": "100644",
+      "sha256": "f5daed03e2e5cf01fe42791054b7e9c9333086534847748cbf6f1f1826493292",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/convergence/joint/comparison.toml"
+    },
+    {
+      "byte_size": 249,
+      "git_blob": "a8f56622435646fb3a99956ffcdb52398b874eae",
+      "mode": "100644",
+      "sha256": "17cac6a00b7f0b6832b81b0d6080e45195ec5ce012c620ec91c5812ea762bbad",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/convergence/kpoint/README.md"
+    },
+    {
+      "byte_size": 315,
+      "git_blob": "18c71d4add87701492bc628cc75a102dd7163414",
+      "mode": "100644",
+      "sha256": "d2717655c9df4e4e4be4fd4ae43614b404a0c91d1748368fd0e61af4960b63c2",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/convergence/kpoint/comparison.toml"
+    },
+    {
+      "byte_size": 202,
+      "git_blob": "b2f9c598790f370e1b63f6d9c4b34eb5be52a7bd",
+      "mode": "100644",
+      "sha256": "d4065420895b168da3cee90fb58fb38a10247b608059dedd5dd6d461a2461f9f",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/convergence/wavefunction_cutoff/README.md"
+    },
+    {
+      "byte_size": 350,
+      "git_blob": "d692076ada4618de75a320516d40caa25ee6c637",
+      "mode": "100644",
+      "sha256": "e995cc122d6be78b3abf96f8d9b36886dc6e32d4ceef33948acdae0e6ce4e8e1",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/convergence/wavefunction_cutoff/comparison.toml"
+    },
+    {
+      "byte_size": 1644,
+      "git_blob": "f5c0cce56734271d25854b00bf32b9b80ed0ab69",
+      "mode": "100644",
+      "sha256": "146e213c686cb1880946392540409c5eb09ed2e6f9dcd7d37a6e147898f2e8f0",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/input-alignment.md"
+    },
+    {
+      "byte_size": 1128,
+      "git_blob": "911627cc31a341282f922548cee08eb29f32666c",
+      "mode": "100644",
+      "sha256": "620a0033aed70fb0ab9831e4aaa9b06d0bc82067bf685c79cc05b2fa146df338",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/README.md"
+    },
+    {
+      "byte_size": 8312,
+      "git_blob": "4a46b24a28329ebbc1e59d40a313a885486b6dd0",
+      "mode": "100644",
+      "sha256": "d8e3983f87365df3d53544b90bc3c9972227bca1445c8afaa21b0a183fdef21a",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/compare_convergence.py"
+    },
+    {
+      "byte_size": 7735,
+      "git_blob": "58387d5d1d239e746bd8897c7ee617e6585ddd1f",
+      "mode": "100644",
+      "sha256": "a65311aa51e864d8756eebf031f4b13eef254832bc48252ffce088f9f132c77a",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/compare_single.py"
+    },
+    {
+      "byte_size": 604,
+      "git_blob": "b1ef6eb91ee4bd1e9219d792b023affb2706b7c1",
+      "mode": "100644",
+      "sha256": "a227d275d59b2f656a5e2f8d84cd9637ea0e43fa032075eb5a01a5584110775f",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/config/README.md"
+    },
+    {
+      "byte_size": 1520,
+      "git_blob": "921f7fdfb889f66dfe3cd73ef1d73003049681e8",
+      "mode": "100644",
+      "sha256": "e6c6124ce439f2244354b9b1ae1090500d1cce828f5176f62eb77f59ae09ab22",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/config/catalog.toml"
+    },
+    {
+      "byte_size": 94,
+      "git_blob": "e7061dd3bb270c03270da831e8e0bc4fe08b7600",
+      "mode": "100644",
+      "sha256": "3b67009a43f9167e1f963715c779ea49782889b1966cc5f1c80e6a516c2f7e86",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/config/runner.toml"
+    },
+    {
+      "byte_size": 16602,
+      "git_blob": "838e704c9a8e651bded74ad808703f4808c0ccea",
+      "mode": "100644",
+      "sha256": "73bbbb47411de1b49e38c81f07c8bceaf6e287117322ab95f3de9eba052ff633",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/configuration.py"
+    },
+    {
+      "byte_size": 3349,
+      "git_blob": "f3f279b9501d05ba44d122b33404c761c7201d5c",
+      "mode": "100644",
+      "sha256": "be31da4f8487823093676c7b2f8da61cebe2017747cc4e316daa23d855625960",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/environment.py"
+    },
+    {
+      "byte_size": 2626,
+      "git_blob": "c4bf5e20d845220daf5504d3bc41b1edc49d6fee",
+      "mode": "100644",
+      "sha256": "9d68f85bb50c29b5e82eb3b41f590a72b20ae9deefcb6f8323596d86695eeca2",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/plan.py"
+    },
+    {
+      "byte_size": 7810,
+      "git_blob": "88301b77e8de98736fb37cc7a48aebd586058245",
+      "mode": "100644",
+      "sha256": "f3c6bce5ec1b856a774f1750bb9f8d8321086e3118da61a04de5a76eda17cb7a",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/plot_structure.py"
+    },
+    {
+      "byte_size": 4248,
+      "git_blob": "f3e0925e432d066047b5fe1533f8a001a7d7fa3d",
+      "mode": "100644",
+      "sha256": "701d356f0dcd6c67af4a9904cb31c0800a2cf4d8dae18aa62bd436cf1fe45f96",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/render_inputs.py"
+    },
+    {
+      "byte_size": 5003,
+      "git_blob": "333443c2247fcfb74f7258ac44ba8fc2b627572c",
+      "mode": "100644",
+      "sha256": "41cab2764f60b537a2e04e224f8242415fa731b8ce88807d65959fbc6bd15f8a",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/runner/replay.py"
+    },
+    {
+      "byte_size": 1397,
+      "git_blob": "a7eb8ac9763b72bf9f86bc0362ea0aeef5baf015",
+      "mode": "100644",
+      "sha256": "bf771b639ef1e947c85ecaefacc72ec68e9b9218890935613db515f4583cf920",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/scf-example.md"
+    },
+    {
+      "byte_size": 985,
+      "git_blob": "7a25f3a18f3e26a9d602abeff502dcb8b4620609",
+      "mode": "100644",
+      "sha256": "42c13015780eec3f790e20f46e25884fb6f6fffff429be122b6314fbef6db774",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/support/README.md"
+    },
+    {
+      "byte_size": 1796,
+      "git_blob": "c87cdce707d47fb2b47c736302ba8c8e3732aab4",
+      "mode": "100644",
+      "sha256": "7234da35eed6aa47cb864f5eabd19150137a7ecc1a1b0829a39f9070a99dfa82",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/support/structure_repository.py"
+    },
+    {
+      "byte_size": 1367,
+      "git_blob": "57772d7e3234e528159c0d767f96fb19833afeb0",
+      "mode": "100644",
+      "sha256": "e34066dbfcbdc187014256731774a4115674a1f1b6286da5729ad4298b0f4f5e",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/support/structures/Si.ConventionalUnitCell.json"
+    },
+    {
+      "byte_size": 680,
+      "git_blob": "40d1788c48e37b0b487a54701daa14eb5bf55580",
+      "mode": "100644",
+      "sha256": "6e048c7001f329459e85f321e7bd406f4dd871d6fabf8d12fa349a1623f87ccc",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/support/structures/Si.PrimitiveUnitCell.json"
+    },
+    {
+      "byte_size": 70,
+      "git_blob": "7ca06a30b54488c526282711a3197c3a1980805a",
+      "mode": "100644",
+      "sha256": "e488562f919f1779232dd6fd3543dc4e4c13fecc82a173188d578f12ea86c4b7",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/workflow/__init__.py"
+    },
+    {
+      "byte_size": 7080,
+      "git_blob": "4521a1f46d8a3bbfbfa5982fab31321aea9f97c9",
+      "mode": "100644",
+      "sha256": "2c455c6edf4e6ee73c2f27fa85bf5632910bd2b551c342cf96b69c3b38c9eca5",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/workflow/net.py"
+    },
+    {
+      "byte_size": 1846,
+      "git_blob": "efa25a3d446009f1f5051e490e84c2cfbe8eecf5",
+      "mode": "100644",
+      "sha256": "97c4703b144c4204d3a6e9f5801776b909a51ca68b4c634ba5784b725b863d09",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/workflow/runtime.py"
+    },
+    {
+      "byte_size": 3729,
+      "git_blob": "bfa2e5aa8329507a2563acf1d385e51b252e7221",
+      "mode": "100644",
+      "sha256": "613a66aaab4221b8ecaebf686e5f28c5f27086a6134b24db926bc096f3a3cd69",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/workflow/workflow.py"
+    },
+    {
+      "byte_size": 2250,
+      "git_blob": "8b9fa8b01bafb3f3e6755c7d0a798381f51a68b5",
+      "mode": "100644",
+      "sha256": "c17fc574690644d283c6abc693247336b9c6db077eb73f67a40a34cc2e601eb6",
+      "target_path": "examples/projectkoios/applications/pw_dft_relaxation/providers/quantumespresso/Si/primitive/execute_relaxation.py"
+    },
+    {
+      "byte_size": 392,
+      "git_blob": "472e6a3dabfb01336205274300038ca6ca24dac2",
+      "mode": "100644",
+      "sha256": "0bfa1b61800cfd884a969e2cc8a3048860016a7cf44d96d4fc6acfd950fadbcd",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/quantumespresso/Si/primitive/campaign.toml"
+    },
+    {
+      "byte_size": 325,
+      "git_blob": "edb91025c4317924db29878ef5eb5ceaa1d39785",
+      "mode": "100644",
+      "sha256": "307c21522f42d77ef5b204c563481c9cfd029833f095773b77817085392a82a9",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/quantumespresso/Si/primitive/convergence/charge_density_cutoff/README.md"
+    },
+    {
+      "byte_size": 164,
+      "git_blob": "a0f33e5766e946387824c4e3bfe354b8d719c124",
+      "mode": "100644",
+      "sha256": "3d915cc7e22afd36afafde101670e71b4803cf96a6a5f9ec7e9a459f6478138d",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/quantumespresso/Si/primitive/convergence/joint/README.md"
+    },
+    {
+      "byte_size": 348,
+      "git_blob": "07ea4d1dd29c3e51313fd20cdf74ffd57bef34c4",
+      "mode": "100644",
+      "sha256": "2b1a7b3b32771a38bddcba3938bc8f8d6820ff276104d3ab0251813a635dba14",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/quantumespresso/Si/primitive/convergence/joint/campaign.toml"
+    },
+    {
+      "byte_size": 18344,
+      "git_blob": "43a0ad7279c09663ae6cca68225912593afd4a66",
+      "mode": "100644",
+      "sha256": "612f3e69f43a17cf60b88f079411b493224b29d9b057bdb836e21bb5ab90a674",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/quantumespresso/Si/primitive/convergence/joint/replay.py"
+    },
+    {
+      "byte_size": 248,
+      "git_blob": "546214df299427dcad96beacfce1459b935cf845",
+      "mode": "100644",
+      "sha256": "6293ff671d5026787add58c463f1dd5eee2eb207099971c90927aa1d6f35e8da",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/quantumespresso/Si/primitive/convergence/kpoint/README.md"
+    },
+    {
+      "byte_size": 346,
+      "git_blob": "c1ac4c2374fb57a8bd1fafd35e61a6f44f6a5d64",
+      "mode": "100644",
+      "sha256": "0bf98f1b8a0da49a62d24c874b0da0a27f27e6ee2a68b37f044455960d9bb130",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/quantumespresso/Si/primitive/convergence/kpoint/campaign.toml"
+    },
+    {
+      "byte_size": 251,
+      "git_blob": "09dca3452d1e9e611a511b9193d93651845466e4",
+      "mode": "100644",
+      "sha256": "25829eebd7c921ae91f7c7852b4bc2858d9f88bc6c27c2aa1f2f95ee0eca7ac0",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/quantumespresso/Si/primitive/convergence/wavefunction_cutoff/README.md"
+    },
+    {
+      "byte_size": 341,
+      "git_blob": "6e8a34dd48aa20be7cca08c018475e2bbecca2ad",
+      "mode": "100644",
+      "sha256": "a3189c31bf946ec5646221fb3a8932a072ea385dcd729c275054d028c0a49363",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/quantumespresso/Si/primitive/convergence/wavefunction_cutoff/campaign.toml"
+    },
+    {
+      "byte_size": 383,
+      "git_blob": "6e83532fcde923909053b92ed02df61d978746ee",
+      "mode": "100644",
+      "sha256": "7b52ba1a0e93c80fc4488ff63b87e7d35ad4c3e6e6a19e4e9d1eb0b0f02ed81a",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/vasp/Si/primitive/campaign.toml"
+    },
+    {
+      "byte_size": 151,
+      "git_blob": "e8626e8ed6a442a0abbfe7f399f211cfb28465bb",
+      "mode": "100644",
+      "sha256": "ccd193a0d6623e58e830a7b3780c7e3cfcb4d0038f884bb9733ca809edac12e6",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/vasp/Si/primitive/convergence/joint/README.md"
+    },
+    {
+      "byte_size": 331,
+      "git_blob": "57a0c96c0d0e50797929c80e9b172f57de39f0d3",
+      "mode": "100644",
+      "sha256": "560b63cda5dd54ddbee9aa5c474505a7807d304b32164bcdf64bfaef19cb6a02",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/vasp/Si/primitive/convergence/joint/campaign.toml"
+    },
+    {
+      "byte_size": 251,
+      "git_blob": "76ff2883f252a4163e2d26690535e8ab02b52302",
+      "mode": "100644",
+      "sha256": "706cfcb62d5f25df50e2aadc4e4a0232b8c83716892b9a013696524222c63052",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/vasp/Si/primitive/convergence/kpoint/README.md"
+    },
+    {
+      "byte_size": 329,
+      "git_blob": "70b46512c60dc68252aa04569b0661a977121a4c",
+      "mode": "100644",
+      "sha256": "85e890b849113853108285aa5a9bb6a19f6331e712617860a74546997c04bc22",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/vasp/Si/primitive/convergence/kpoint/campaign.toml"
+    },
+    {
+      "byte_size": 233,
+      "git_blob": "5f540029e83636efd54f1a0c79f3d8ebbc5dc751",
+      "mode": "100644",
+      "sha256": "3de1d4c5cc7af729aad535c30a4cc4ede823216bcc83c8b2d42a91af106e7fff",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/vasp/Si/primitive/convergence/wavefunction_cutoff/README.md"
+    },
+    {
+      "byte_size": 324,
+      "git_blob": "6343b3a0880479e220e7f42f6755856b740ec2fa",
+      "mode": "100644",
+      "sha256": "cb76e98ed0e84903eab1dae60e226449d2ceb59ae5c836bcc2fb78e6452e320c",
+      "target_path": "examples/projectkoios/applications/pw_dft_scf/providers/vasp/Si/primitive/convergence/wavefunction_cutoff/campaign.toml"
+    },
+    {
+      "byte_size": 58,
+      "git_blob": "9162eadec07f1352704b94371106d5c8083e5ad7",
+      "mode": "100644",
+      "sha256": "c7d5fe2d47f14c7037771c22c34be555fed00518bb62eefb9b1130298179f292",
+      "target_path": "src/python/projectkoios/applications/__init__.py"
+    },
+    {
+      "byte_size": 64,
+      "git_blob": "637cba54251a169815ddcba118deb2db77a0c6fb",
+      "mode": "100644",
+      "sha256": "6843c35eb01591a7cef4000b5f205dc23270908732c60f3d7ebc3c5f75a63295",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/__init__.py"
+    },
+    {
+      "byte_size": 11307,
+      "git_blob": "c961b4b981847c6e5a3533fca7ebd8206c748d00",
+      "mode": "100644",
+      "sha256": "fd6f65898db75f24cb9e088735f14399dff8d0010ae430069bc6e79c1184135a",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/comparison.py"
+    },
+    {
+      "byte_size": 1579,
+      "git_blob": "90e8ad5ccf39e61ee8f8570b609140008ade481e",
+      "mode": "100644",
+      "sha256": "9186899f5cba83041a18d92d6f2d8222927e26d1107996a062eae6878f84c95d",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/configuration.py"
+    },
+    {
+      "byte_size": 66,
+      "git_blob": "89759b7c3166802bf2db4ec8474bebacb32d3e9c",
+      "mode": "100644",
+      "sha256": "abfd7b2cea0898a792734ab801fca886f548a57ba25eac1d08f416d421569e83",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/convergence/__init__.py"
+    },
+    {
+      "byte_size": 10833,
+      "git_blob": "4225294c93551c23758778204c0724d6b945bbef",
+      "mode": "100644",
+      "sha256": "edbd605f4db0f71bf424619fe2352c655c0fe73071d3e215132d83bc47f24ade",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/convergence/assessment.py"
+    },
+    {
+      "byte_size": 1904,
+      "git_blob": "7ee490e425f03893bc90b3d3e0f4a1c37f1dff74",
+      "mode": "100644",
+      "sha256": "64e26616417dcf41b0084101e487eabea8102eeb1e4dd351bcfb704af934f8f1",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/convergence/base.py"
+    },
+    {
+      "byte_size": 11497,
+      "git_blob": "f9def8c85777348aeebefbf5b4e043f1e92ac262",
+      "mode": "100644",
+      "sha256": "d6cb48d714e1d24f435c046919ffd626db178cd1c6fd7c6ea719c76681198f51",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/convergence/comparison.py"
+    },
+    {
+      "byte_size": 1857,
+      "git_blob": "223e49edc7ad1eb5d4df2a0c8da3a512a83c67a5",
+      "mode": "100644",
+      "sha256": "e10b746a4212ffa6aa5f76ada2da03302c63500d12632613221f42ac4a4ad11b",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/convergence/controller.py"
+    },
+    {
+      "byte_size": 1246,
+      "git_blob": "057506c9901e3fed84df7e9f85cbdfa45e37c47b",
+      "mode": "100644",
+      "sha256": "b78b3ac5897a0800f8cd5480d34ab982983a8e9190a7cbf494f62067354e6fa0",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/convergence/policy.py"
+    },
+    {
+      "byte_size": 6031,
+      "git_blob": "5f9cb5c2ffa6a739ea8d9a44b5965b34e27436cc",
+      "mode": "100644",
+      "sha256": "f62440a456a0c3943752fc55047c3fc2a81bfe39f1dc6ab06feb59179881e9de",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/recipe.py"
+    },
+    {
+      "byte_size": 62,
+      "git_blob": "71ef1d39495a99c8752a91e2888e4dbeadc57516",
+      "mode": "100644",
+      "sha256": "7503f4719ed345082267a7ba3235391d6c5968b6e73ecf962cc8f1b07d6e8aac",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/workflow/__init__.py"
+    },
+    {
+      "byte_size": 483,
+      "git_blob": "175411ed3f6a37b91ffc6d26fc6c3ba91335ceab",
+      "mode": "100644",
+      "sha256": "3889697f37c922a71a6823a22f47cad4928c616d059996797e7996bda59cb5f6",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/workflow/base.py"
+    },
+    {
+      "byte_size": 1360,
+      "git_blob": "68783d311d18b7bd60d193cc00dbd30ad4a55224",
+      "mode": "100644",
+      "sha256": "ac54ecb7ba4c2e5740f1786e80e5b48575a1f2fc65e9e7de1672966ea41dee37",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/workflow/definition.py"
+    },
+    {
+      "byte_size": 1260,
+      "git_blob": "69f6f2a96a76a8a0ebf9ff82d0445dd574d5492c",
+      "mode": "100644",
+      "sha256": "a026fbbbacd053a50afa6b655de4e2205730feb62e4668c581c14a369b3c36da",
+      "target_path": "src/python/projectkoios/applications/pw_dft_scf/workflow/facade.py"
+    },
+    {
+      "byte_size": 6609,
+      "git_blob": "933689ab279c07b888eeb37a4982bb8c26e69cf9",
+      "mode": "100644",
+      "sha256": "aa83bdf7128117776aefa833fb2908eafeb72d92dd604bf262f9b185659c42f0",
+      "target_path": "tests/projectkoios/applications/pw_dft_scf/comparison/test__PwDftScfComparator.py"
+    },
+    {
+      "byte_size": 3244,
+      "git_blob": "271feebc9525e9ed79c7ed4c08571a7c50aaf6a5",
+      "mode": "100644",
+      "sha256": "cf6e5a7b913b71df5d12f07146eb891ea1d3a399eb8d54eef76d22bf2cca3668",
+      "target_path": "tests/projectkoios/applications/pw_dft_scf/convergence/assessment/test__EnergyConvergenceAssessors.py"
+    },
+    {
+      "byte_size": 8448,
+      "git_blob": "1962251e461d4c8c917139867abdda2d76297e05",
+      "mode": "100644",
+      "sha256": "9590335264e1b89d75117bed2f739dd750c78f438f0e700d375f09e6f469eba5",
+      "target_path": "tests/projectkoios/applications/pw_dft_scf/convergence/comparison/test__PwDftScfConvergenceComparator.py"
+    },
+    {
+      "byte_size": 1718,
+      "git_blob": "9d3e9d5e591552f6411f14f324ea757a6777be02",
+      "mode": "100644",
+      "sha256": "13f7a85f6a15d0de03b52286890a2c6b6f9aceb7bdc65c576698af821675e40f",
+      "target_path": "tests/projectkoios/applications/pw_dft_scf/convergence/controller/test__PwDftScfConvergenceController.py"
+    },
+    {
+      "byte_size": 1606,
+      "git_blob": "6bde55efa429cb9e3610bf843075a05fbd2d40eb",
+      "mode": "100644",
+      "sha256": "f2c856153cb7dd90f9ca56f95ffa0e9e65994a6917fcf8caab7830c4ba0ae958",
+      "target_path": "tests/projectkoios/applications/pw_dft_scf/recipe/test__PwDftScfRecipe.py"
+    },
+    {
+      "byte_size": 705,
+      "git_blob": "6188b53917865deb5b47c3628e7fdeddfd68f370",
+      "mode": "100644",
+      "sha256": "0f152a79d8564ec8b97156ed7d6f41098b65f767003f0acd402c10796893bf8a",
+      "target_path": "tests/projectkoios/applications/pw_dft_scf/workflow/definition/test__pw_dft_scf_workflow_definition.py"
+    }
+  ],
+  "transfer_commit": "4d58422e2ffed6e81c7ef2c73c8e484a8c8358c3",
+  "transfer_tree": "b957a5a1a42489466407a369c5516f376ce826b1"
+}

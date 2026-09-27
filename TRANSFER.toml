@@ -69,6 +69,13 @@ combined_parents = [
   "3f02941d7fb76bfc567b6d3f71e2be788bb32ac2",
 ]
 combined_validation = "Provider imports, exact-output checks for all eight VASP/QE SCF campaign projections, QE relaxation composition, and provenance-bound replay of 30 initial plus 6 adaptive provider-normalized observations passed without calculator execution."
+full_provider_validation_commit = "ed36e4db8330d5145651531c5f88ae96d65dfbfe"
+full_provider_validation_tree = "59013d016308e1e0d7e275a4eae56cbcc1765c5d"
+full_provider_validation_parents = [
+  "1dec6c913777f0d24fda7e42fe1e78c13c08338e",
+  "0639c2e2793a68367a629962de2b0ae712f5a556",
+]
+full_provider_validation_complete = true
 
 [[provider_handoffs]]
 provider = "vasp"

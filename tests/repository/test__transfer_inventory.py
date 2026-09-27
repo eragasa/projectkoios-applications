@@ -15,6 +15,12 @@ _SOURCE_TREE = "e5daec9f5a16e03f998afb9158a101246acd40d1"
 _TRANSFER_COMMIT = "4d58422e2ffed6e81c7ef2c73c8e484a8c8358c3"
 _TRANSFER_TREE = "b957a5a1a42489466407a369c5516f376ce826b1"
 _INVENTORY_SHA256 = "1105306fca28c9bf29815e44f38fb3c91bed922a09f93ee31386a30b4b5d41d9"
+_TARGET_INVENTORY_PATH = (
+    _REPOSITORY_ROOT / "tests/fixtures/transfer/expected-transfer-targets.json"
+)
+_TARGET_INVENTORY_SHA256 = (
+    "a968ca34144a9641b8a4047fb5ed6c9a9945dc660d69a8867b5cf010827adbb2"
+)
 _SUBTREES = {
     "implementation": "7a50551ef1f5f03433b58d36e6b3d4b04de010cc",
     "tests": "d4b0c6f22447bf74ebc79e151f9a24bd263ed1e0",
@@ -37,6 +43,11 @@ class TransferInventoryTest(unittest.TestCase):
     def setUp(self) -> None:
         self.transfer = tomllib.loads(_TRANSFER_PATH.read_text(encoding="utf-8"))
         self.files = self.transfer["files"]
+        target_bytes = _TARGET_INVENTORY_PATH.read_bytes()
+        self.assertEqual(
+            hashlib.sha256(target_bytes).hexdigest(), _TARGET_INVENTORY_SHA256
+        )
+        self.expected_targets = json.loads(target_bytes)["targets"]
 
     def test_inventory_is_bound_to_independent_expected_identities(self) -> None:
         source = self.transfer["source"]
@@ -57,6 +68,14 @@ class TransferInventoryTest(unittest.TestCase):
         self.assertEqual(hashlib.sha256(canonical).hexdigest(), _INVENTORY_SHA256)
         self.assertEqual(len({item["source_path"] for item in self.files}), 122)
         self.assertEqual(len({item["target_path"] for item in self.files}), 122)
+        manifest_by_target = {item["target_path"]: item for item in self.files}
+        self.assertEqual(
+            set(manifest_by_target),
+            {item["target_path"] for item in self.expected_targets},
+        )
+        for expected in self.expected_targets:
+            manifest = manifest_by_target[expected["target_path"]]
+            self.assertEqual(manifest["transfer_target_sha256"], expected["sha256"])
 
     def test_checkout_transfer_targets_match_fixed_transfer_commit(self) -> None:
         if not (_REPOSITORY_ROOT / ".git").exists():
@@ -67,14 +86,29 @@ class TransferInventoryTest(unittest.TestCase):
             .strip(),
             _TRANSFER_TREE,
         )
-        for item in self.files:
-            payload = self._git(
-                _REPOSITORY_ROOT, "show", f"{_TRANSFER_COMMIT}:{item['target_path']}"
+        for expected in self.expected_targets:
+            path = expected["target_path"]
+            entry = (
+                self._git(
+                    _REPOSITORY_ROOT,
+                    "ls-tree",
+                    _TRANSFER_COMMIT,
+                    "--",
+                    path,
+                )
+                .decode()
+                .strip()
+                .split()
             )
             self.assertEqual(
-                hashlib.sha256(payload).hexdigest(),
-                item["transfer_target_sha256"],
-                item["target_path"],
+                entry[:3],
+                [expected["mode"], "blob", expected["git_blob"]],
+                path,
+            )
+            payload = self._git(_REPOSITORY_ROOT, "show", f"{_TRANSFER_COMMIT}:{path}")
+            self.assertEqual(len(payload), expected["byte_size"], path)
+            self.assertEqual(
+                hashlib.sha256(payload).hexdigest(), expected["sha256"], path
             )
 
     def test_optional_donor_checkout_matches_every_source_object(self) -> None:

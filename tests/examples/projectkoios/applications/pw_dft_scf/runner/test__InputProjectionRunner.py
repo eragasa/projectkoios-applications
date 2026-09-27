@@ -1,60 +1,166 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
+import os
+import subprocess
 import tempfile
 import tomllib
 import unittest
+from dataclasses import asdict
 from pathlib import Path
+from types import ModuleType
 
-from examples.projectkoios.applications.pw_dft_scf.runner.environment import WorkflowRunnerEnvironment
-from examples.projectkoios.applications.pw_dft_scf.runner.render_inputs import InputProjectionRunner
+from examples.projectkoios.applications.pw_dft_scf.runner.environment import (
+    WorkflowRunnerEnvironment,
+)
+from examples.projectkoios.applications.pw_dft_scf.runner.render_inputs import (
+    InputProjectionRunner,
+)
 
-_COMMIT = "24dffe10c29e60afcd5fe07aaacb84921a41a43d"
-_TREE = "b7897a05de39072126e6162ce6e8b8fb25be5f31"
-_VASP_HASHES = {
-    "INCAR": "15703162fd60018469973248d32f51b6d35d1a3e716b3201b25f6c0ce0c1734f",
-    "KPOINTS": "37c762ac822ae18c3c1abb39def8c008a1afc3beb75a58971376df313da597cd",
-    "POSCAR": "38b718c8c976817ed7fe5824b32de744e8be91166c220eefbb46d2a42109a9c4",
-    "input-projection.json": "ed0d358e9e09d4ef9364f359f601d80ab59e03258b93df85ad2d3750de9ae28d",
-}
-_QE_METADATA_HASH = "8cac4e2f09587da48e26b26e2fe835a25eb9d6d1cbae9c1906b42cb8c6f1d239"
-_QE_BASE_HASH = "945e807c6dec6ce7c73f54bc0522ce08b0ebfab62ed6ae77e4663ee3e5e0d459"
-_QE_CONVERGENCE_HASH = "e18bb80ced5ea2a373e587146becac309d6ce2210b2cd89a9298dbbd2b7006ab"
+_FIXTURE_SHA256 = "90a3384f3eb80c373e56d358370a75e41f647eaddca2368e1d15aee36dd4611e"
 
 
 class InputProjectionRunnerTest(unittest.TestCase):
-    def test_projects_exact_reviewed_vasp_and_qe_campaigns(self) -> None:
-        repository = Path(__file__).resolve().parents[6]
-        transfer = tomllib.loads((repository / "TRANSFER.toml").read_text())
-        simulations = transfer["dependencies"]["simulations"]
-        self.assertEqual((simulations["combined_commit"], simulations["combined_tree"]), (_COMMIT, _TREE))
-        example = repository / "examples/projectkoios/applications/pw_dft_scf"
-        environment = WorkflowRunnerEnvironment.load(example / "runner/config/runner.toml")
-        campaigns = sorted((example / "providers").glob("*/Si/primitive/**/campaign.toml"))
-        self.assertEqual(len(campaigns), 8)
+    def setUp(self) -> None:
+        self.repository = Path(__file__).resolve().parents[6]
+        self.example = self.repository / "examples/projectkoios/applications/pw_dft_scf"
+        fixture_path = (
+            self.repository / "tests/fixtures/pw_dft_scf/campaign-projections.json"
+        )
+        fixture_bytes = fixture_path.read_bytes()
+        self.assertEqual(hashlib.sha256(fixture_bytes).hexdigest(), _FIXTURE_SHA256)
+        self.fixture = json.loads(fixture_bytes)
+
+    def test_exact_eight_campaign_matrix_and_rendered_values(self) -> None:
+        environment = WorkflowRunnerEnvironment.load(
+            self.example / "runner/config/runner.toml"
+        )
+        expected_paths = {item["path"] for item in self.fixture["campaigns"]}
+        discovered_paths = {
+            path.relative_to(self.example).as_posix()
+            for path in (self.example / "providers").glob(
+                "*/Si/primitive/**/campaign.toml"
+            )
+        }
+        self.assertEqual(discovered_paths, expected_paths)
 
         with tempfile.TemporaryDirectory() as temporary_directory:
-            for index, campaign in enumerate(campaigns):
-                loaded = environment.loader.load(campaign)
-                request = loaded.campaign.recipe.base_request
-                self.assertEqual(request.sampling.kpoint_mesh, (8, 8, 8))
-                self.assertEqual(request.sampling.kpoint_shift, (0, 0, 0))
-                expected_cutoff = 408.1707936897154 if "quantumespresso/Si/primitive/campaign.toml" in campaign.as_posix() else 400.0
-                self.assertEqual(request.sampling.wavefunction_cutoff_ev, expected_cutoff)
-                positions = tuple(tuple(atom.position_fractional.magnitude.tolist()) for atom in request.simulation.unit_cell.atomic_basis.atoms)
-                self.assertEqual(positions, ((0.0, 0.0, 0.0), (0.25, 0.25, 0.25)))
+            for index, expected in enumerate(self.fixture["campaigns"]):
+                campaign_path = self.example / expected["path"]
+                declaration = tomllib.loads(campaign_path.read_text(encoding="utf-8"))
+                self.assertEqual(declaration["campaign_id"], expected["campaign_id"])
+                self.assertEqual(declaration["mode"], expected["mode"])
+                self.assertEqual(declaration["integration"], expected["provider"])
+                self.assertEqual(declaration["structure_id"], expected["structure_id"])
+                self.assertEqual(
+                    declaration.get("coordinate_profile"),
+                    expected["coordinate_profile"],
+                )
 
+                loaded = environment.loader.load(campaign_path)
+                recipe = loaded.campaign.recipe
+                request = recipe.base_request
+                self.assertEqual(type(recipe).__name__, expected["recipe_type"])
+                self.assertEqual(recipe.campaign_id, expected["campaign_id"])
+                self.assertEqual(
+                    loaded.campaign.integration_id.value, expected["provider"]
+                )
+                self.assertEqual(
+                    loaded.projection_profile_id, expected["projection_profile"]
+                )
+                self.assertEqual(
+                    list(request.sampling.kpoint_mesh),
+                    expected["sampling"]["kpoint_mesh"],
+                )
+                self.assertEqual(
+                    list(request.sampling.kpoint_shift),
+                    expected["sampling"]["kpoint_shift"],
+                )
+                self.assertEqual(
+                    request.sampling.wavefunction_cutoff_ev,
+                    expected["sampling"]["wavefunction_cutoff_ev"],
+                )
+                self.assertEqual(
+                    list(getattr(recipe, "mesh_densities", ())) or None,
+                    expected["mesh_densities"],
+                )
+                self.assertEqual(
+                    list(getattr(recipe, "wavefunction_cutoffs_ev", ())) or None,
+                    expected["wavefunction_cutoffs_ev"],
+                )
+                policy = getattr(recipe, "policy", None)
+                self.assertEqual(
+                    asdict(policy) if policy is not None else None, expected["policy"]
+                )
+
+                positions = [
+                    atom.position_fractional.magnitude.tolist()
+                    for atom in request.simulation.unit_cell.atomic_basis.atoms
+                ]
+                self.assertEqual(positions, [[0.0, 0.0, 0.0], [0.25, 0.25, 0.25]])
                 output = Path(temporary_directory) / str(index)
-                rendered = InputProjectionRunner(environment).render(campaign, output)
-                actual = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in rendered}
-                if "/vasp/" in campaign.as_posix():
-                    self.assertEqual(actual, _VASP_HASHES)
-                else:
-                    expected_input = _QE_BASE_HASH if campaign.parent.name == "primitive" else _QE_CONVERGENCE_HASH
-                    self.assertEqual(actual, {"pw.in": expected_input, "input-projection.json": _QE_METADATA_HASH})
-                metadata = json.loads((output / "input-projection.json").read_text(encoding="ascii"))
-                self.assertIn(metadata["integration_id"], {"quantum-espresso", "vasp"})
+                rendered = InputProjectionRunner(environment).render(
+                    campaign_path, output
+                )
+                actual_hashes = {
+                    path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in rendered
+                }
+                self.assertEqual(actual_hashes, expected["rendered_sha256"])
+                rendered_text = "\n".join(
+                    path.read_text(encoding="ascii")
+                    for path in rendered
+                    if path.suffix != ".json"
+                )
+                for fragment in expected["rendered_fragments"]:
+                    self.assertIn(fragment, rendered_text)
+
+    def test_ambient_provider_modules_are_exact_candidate_git_objects(self) -> None:
+        simulations_repository = os.environ.get("PROJECTKOIOS_SIMULATIONS_REPOSITORY")
+        if simulations_repository is not None:
+            tree = subprocess.run(
+                [
+                    "git",
+                    "rev-parse",
+                    f"{self.fixture['simulations_commit']}^{{tree}}",
+                ],
+                cwd=simulations_repository,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            self.assertEqual(tree, self.fixture["simulations_tree"])
+        for expected in self.fixture["provider_modules"]:
+            module = importlib.import_module(expected["module"])
+            self._assert_module_hash(module, expected["sha256"])
+            if simulations_repository is not None:
+                entry = (
+                    subprocess.run(
+                        [
+                            "git",
+                            "ls-tree",
+                            self.fixture["simulations_commit"],
+                            "--",
+                            expected["path"],
+                        ],
+                        cwd=simulations_repository,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                    .stdout.strip()
+                    .split()
+                )
+                self.assertEqual(entry[:3], ["100644", "blob", expected["git_blob"]])
+
+    def _assert_module_hash(self, module: ModuleType, expected_sha256: str) -> None:
+        module_path = Path(module.__file__ or "")
+        self.assertTrue(module_path.is_file())
+        self.assertEqual(
+            hashlib.sha256(module_path.read_bytes()).hexdigest(), expected_sha256
+        )
 
 
 if __name__ == "__main__":

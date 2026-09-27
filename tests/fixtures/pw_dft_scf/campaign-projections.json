@@ -1,0 +1,407 @@
+{
+  "campaigns": [
+    {
+      "campaign_id": "silicon-scf-qe",
+      "coordinate_profile": null,
+      "mesh_densities": null,
+      "mode": "single",
+      "path": "providers/quantumespresso/Si/primitive/campaign.toml",
+      "policy": null,
+      "projection_profile": "qe-sssp-pbe-efficiency",
+      "provider": "quantum-espresso",
+      "recipe_type": "PwDftScfSingleCalculationRecipe",
+      "rendered_fragments": [
+        "ecutwfc = 30.0000000000",
+        "8 8 8 0 0 0",
+        "Si 0.25000000 0.25000000 0.25000000"
+      ],
+      "rendered_sha256": {
+        "input-projection.json": "8cac4e2f09587da48e26b26e2fe835a25eb9d6d1cbae9c1906b42cb8c6f1d239",
+        "pw.in": "945e807c6dec6ce7c73f54bc0522ce08b0ebfab62ed6ae77e4663ee3e5e0d459"
+      },
+      "sampling": {
+        "kpoint_mesh": [
+          8,
+          8,
+          8
+        ],
+        "kpoint_shift": [
+          0,
+          0,
+          0
+        ],
+        "wavefunction_cutoff_ev": 408.1707936897154
+      },
+      "structure_id": "Si.PrimitiveUnitCell",
+      "wavefunction_cutoffs_ev": null
+    },
+    {
+      "campaign_id": "silicon-cross-qe",
+      "coordinate_profile": "cross",
+      "mesh_densities": [
+        4,
+        6,
+        8
+      ],
+      "mode": "kpoint-cutoff",
+      "path": "providers/quantumespresso/Si/primitive/convergence/joint/campaign.toml",
+      "policy": {
+        "cutoff_increment_ev": 50.0,
+        "extension_steps": 2,
+        "maximum_cutoff_ev": 1200.0,
+        "maximum_grid_points": 80,
+        "maximum_mesh_density": 20,
+        "mesh_increment": 2,
+        "required_consecutive_deltas": 2,
+        "tolerance_mev_per_atom": 1.0
+      },
+      "projection_profile": "qe-sssp-pbe-efficiency",
+      "provider": "quantum-espresso",
+      "recipe_type": "PwDftScfGridConvergenceRecipe",
+      "rendered_fragments": [
+        "ecutwfc = 29.3994577405",
+        "8 8 8 0 0 0",
+        "Si 0.25000000 0.25000000 0.25000000"
+      ],
+      "rendered_sha256": {
+        "input-projection.json": "8cac4e2f09587da48e26b26e2fe835a25eb9d6d1cbae9c1906b42cb8c6f1d239",
+        "pw.in": "e18bb80ced5ea2a373e587146becac309d6ce2210b2cd89a9298dbbd2b7006ab"
+      },
+      "sampling": {
+        "kpoint_mesh": [
+          8,
+          8,
+          8
+        ],
+        "kpoint_shift": [
+          0,
+          0,
+          0
+        ],
+        "wavefunction_cutoff_ev": 400.0
+      },
+      "structure_id": "Si.PrimitiveUnitCell",
+      "wavefunction_cutoffs_ev": [
+        300.0,
+        350.0,
+        400.0
+      ]
+    },
+    {
+      "campaign_id": "silicon-kpoints-qe",
+      "coordinate_profile": "k-points",
+      "mesh_densities": [
+        4,
+        6,
+        8
+      ],
+      "mode": "kpoint",
+      "path": "providers/quantumespresso/Si/primitive/convergence/kpoint/campaign.toml",
+      "policy": {
+        "cutoff_increment_ev": 50.0,
+        "extension_steps": 2,
+        "maximum_cutoff_ev": 1200.0,
+        "maximum_grid_points": 80,
+        "maximum_mesh_density": 20,
+        "mesh_increment": 2,
+        "required_consecutive_deltas": 2,
+        "tolerance_mev_per_atom": 1.0
+      },
+      "projection_profile": "qe-sssp-pbe-efficiency",
+      "provider": "quantum-espresso",
+      "recipe_type": "PwDftScfKpointConvergenceRecipe",
+      "rendered_fragments": [
+        "ecutwfc = 29.3994577405",
+        "8 8 8 0 0 0",
+        "Si 0.25000000 0.25000000 0.25000000"
+      ],
+      "rendered_sha256": {
+        "input-projection.json": "8cac4e2f09587da48e26b26e2fe835a25eb9d6d1cbae9c1906b42cb8c6f1d239",
+        "pw.in": "e18bb80ced5ea2a373e587146becac309d6ce2210b2cd89a9298dbbd2b7006ab"
+      },
+      "sampling": {
+        "kpoint_mesh": [
+          8,
+          8,
+          8
+        ],
+        "kpoint_shift": [
+          0,
+          0,
+          0
+        ],
+        "wavefunction_cutoff_ev": 400.0
+      },
+      "structure_id": "Si.PrimitiveUnitCell",
+      "wavefunction_cutoffs_ev": null
+    },
+    {
+      "campaign_id": "silicon-encut-qe",
+      "coordinate_profile": "encut",
+      "mesh_densities": null,
+      "mode": "cutoff",
+      "path": "providers/quantumespresso/Si/primitive/convergence/wavefunction_cutoff/campaign.toml",
+      "policy": {
+        "cutoff_increment_ev": 50.0,
+        "extension_steps": 2,
+        "maximum_cutoff_ev": 1200.0,
+        "maximum_grid_points": 80,
+        "maximum_mesh_density": 20,
+        "mesh_increment": 2,
+        "required_consecutive_deltas": 2,
+        "tolerance_mev_per_atom": 1.0
+      },
+      "projection_profile": "qe-sssp-pbe-efficiency",
+      "provider": "quantum-espresso",
+      "recipe_type": "PwDftScfCutoffConvergenceRecipe",
+      "rendered_fragments": [
+        "ecutwfc = 29.3994577405",
+        "8 8 8 0 0 0",
+        "Si 0.25000000 0.25000000 0.25000000"
+      ],
+      "rendered_sha256": {
+        "input-projection.json": "8cac4e2f09587da48e26b26e2fe835a25eb9d6d1cbae9c1906b42cb8c6f1d239",
+        "pw.in": "e18bb80ced5ea2a373e587146becac309d6ce2210b2cd89a9298dbbd2b7006ab"
+      },
+      "sampling": {
+        "kpoint_mesh": [
+          8,
+          8,
+          8
+        ],
+        "kpoint_shift": [
+          0,
+          0,
+          0
+        ],
+        "wavefunction_cutoff_ev": 400.0
+      },
+      "structure_id": "Si.PrimitiveUnitCell",
+      "wavefunction_cutoffs_ev": [
+        300.0,
+        350.0,
+        400.0
+      ]
+    },
+    {
+      "campaign_id": "silicon-scf-vasp",
+      "coordinate_profile": null,
+      "mesh_densities": null,
+      "mode": "single",
+      "path": "providers/vasp/Si/primitive/campaign.toml",
+      "policy": null,
+      "projection_profile": "vasp-static-scf",
+      "provider": "vasp",
+      "recipe_type": "PwDftScfSingleCalculationRecipe",
+      "rendered_fragments": [
+        "ENCUT = 400",
+        "8 8 8",
+        "0.2500000000000000 0.2500000000000000 0.2500000000000000"
+      ],
+      "rendered_sha256": {
+        "INCAR": "15703162fd60018469973248d32f51b6d35d1a3e716b3201b25f6c0ce0c1734f",
+        "KPOINTS": "37c762ac822ae18c3c1abb39def8c008a1afc3beb75a58971376df313da597cd",
+        "POSCAR": "38b718c8c976817ed7fe5824b32de744e8be91166c220eefbb46d2a42109a9c4",
+        "input-projection.json": "ed0d358e9e09d4ef9364f359f601d80ab59e03258b93df85ad2d3750de9ae28d"
+      },
+      "sampling": {
+        "kpoint_mesh": [
+          8,
+          8,
+          8
+        ],
+        "kpoint_shift": [
+          0,
+          0,
+          0
+        ],
+        "wavefunction_cutoff_ev": 400.0
+      },
+      "structure_id": "Si.PrimitiveUnitCell",
+      "wavefunction_cutoffs_ev": null
+    },
+    {
+      "campaign_id": "silicon-cross-vasp",
+      "coordinate_profile": "cross",
+      "mesh_densities": [
+        4,
+        6,
+        8
+      ],
+      "mode": "kpoint-cutoff",
+      "path": "providers/vasp/Si/primitive/convergence/joint/campaign.toml",
+      "policy": {
+        "cutoff_increment_ev": 50.0,
+        "extension_steps": 2,
+        "maximum_cutoff_ev": 1200.0,
+        "maximum_grid_points": 80,
+        "maximum_mesh_density": 20,
+        "mesh_increment": 2,
+        "required_consecutive_deltas": 2,
+        "tolerance_mev_per_atom": 1.0
+      },
+      "projection_profile": "vasp-static-scf",
+      "provider": "vasp",
+      "recipe_type": "PwDftScfGridConvergenceRecipe",
+      "rendered_fragments": [
+        "ENCUT = 400",
+        "8 8 8",
+        "0.2500000000000000 0.2500000000000000 0.2500000000000000"
+      ],
+      "rendered_sha256": {
+        "INCAR": "15703162fd60018469973248d32f51b6d35d1a3e716b3201b25f6c0ce0c1734f",
+        "KPOINTS": "37c762ac822ae18c3c1abb39def8c008a1afc3beb75a58971376df313da597cd",
+        "POSCAR": "38b718c8c976817ed7fe5824b32de744e8be91166c220eefbb46d2a42109a9c4",
+        "input-projection.json": "ed0d358e9e09d4ef9364f359f601d80ab59e03258b93df85ad2d3750de9ae28d"
+      },
+      "sampling": {
+        "kpoint_mesh": [
+          8,
+          8,
+          8
+        ],
+        "kpoint_shift": [
+          0,
+          0,
+          0
+        ],
+        "wavefunction_cutoff_ev": 400.0
+      },
+      "structure_id": "Si.PrimitiveUnitCell",
+      "wavefunction_cutoffs_ev": [
+        300.0,
+        350.0,
+        400.0
+      ]
+    },
+    {
+      "campaign_id": "silicon-kpoints-vasp",
+      "coordinate_profile": "k-points",
+      "mesh_densities": [
+        4,
+        6,
+        8
+      ],
+      "mode": "kpoint",
+      "path": "providers/vasp/Si/primitive/convergence/kpoint/campaign.toml",
+      "policy": {
+        "cutoff_increment_ev": 50.0,
+        "extension_steps": 2,
+        "maximum_cutoff_ev": 1200.0,
+        "maximum_grid_points": 80,
+        "maximum_mesh_density": 20,
+        "mesh_increment": 2,
+        "required_consecutive_deltas": 2,
+        "tolerance_mev_per_atom": 1.0
+      },
+      "projection_profile": "vasp-static-scf",
+      "provider": "vasp",
+      "recipe_type": "PwDftScfKpointConvergenceRecipe",
+      "rendered_fragments": [
+        "ENCUT = 400",
+        "8 8 8",
+        "0.2500000000000000 0.2500000000000000 0.2500000000000000"
+      ],
+      "rendered_sha256": {
+        "INCAR": "15703162fd60018469973248d32f51b6d35d1a3e716b3201b25f6c0ce0c1734f",
+        "KPOINTS": "37c762ac822ae18c3c1abb39def8c008a1afc3beb75a58971376df313da597cd",
+        "POSCAR": "38b718c8c976817ed7fe5824b32de744e8be91166c220eefbb46d2a42109a9c4",
+        "input-projection.json": "ed0d358e9e09d4ef9364f359f601d80ab59e03258b93df85ad2d3750de9ae28d"
+      },
+      "sampling": {
+        "kpoint_mesh": [
+          8,
+          8,
+          8
+        ],
+        "kpoint_shift": [
+          0,
+          0,
+          0
+        ],
+        "wavefunction_cutoff_ev": 400.0
+      },
+      "structure_id": "Si.PrimitiveUnitCell",
+      "wavefunction_cutoffs_ev": null
+    },
+    {
+      "campaign_id": "silicon-encut-vasp",
+      "coordinate_profile": "encut",
+      "mesh_densities": null,
+      "mode": "cutoff",
+      "path": "providers/vasp/Si/primitive/convergence/wavefunction_cutoff/campaign.toml",
+      "policy": {
+        "cutoff_increment_ev": 50.0,
+        "extension_steps": 2,
+        "maximum_cutoff_ev": 1200.0,
+        "maximum_grid_points": 80,
+        "maximum_mesh_density": 20,
+        "mesh_increment": 2,
+        "required_consecutive_deltas": 2,
+        "tolerance_mev_per_atom": 1.0
+      },
+      "projection_profile": "vasp-static-scf",
+      "provider": "vasp",
+      "recipe_type": "PwDftScfCutoffConvergenceRecipe",
+      "rendered_fragments": [
+        "ENCUT = 400",
+        "8 8 8",
+        "0.2500000000000000 0.2500000000000000 0.2500000000000000"
+      ],
+      "rendered_sha256": {
+        "INCAR": "15703162fd60018469973248d32f51b6d35d1a3e716b3201b25f6c0ce0c1734f",
+        "KPOINTS": "37c762ac822ae18c3c1abb39def8c008a1afc3beb75a58971376df313da597cd",
+        "POSCAR": "38b718c8c976817ed7fe5824b32de744e8be91166c220eefbb46d2a42109a9c4",
+        "input-projection.json": "ed0d358e9e09d4ef9364f359f601d80ab59e03258b93df85ad2d3750de9ae28d"
+      },
+      "sampling": {
+        "kpoint_mesh": [
+          8,
+          8,
+          8
+        ],
+        "kpoint_shift": [
+          0,
+          0,
+          0
+        ],
+        "wavefunction_cutoff_ev": 400.0
+      },
+      "structure_id": "Si.PrimitiveUnitCell",
+      "wavefunction_cutoffs_ev": [
+        300.0,
+        350.0,
+        400.0
+      ]
+    }
+  ],
+  "provider_modules": [
+    {
+      "git_blob": "abac8606f91cfbd71c38d55dd86bc3ee28c9deef",
+      "module": "projectkoios.integrations.quantumespresso.pw.scf.configuration",
+      "path": "src/python/projectkoios/integrations/quantumespresso/pw/scf/configuration.py",
+      "sha256": "ad40b1fcc9800e51dcb259b72514a3025a3fa20b9b701350b065931de2061b1b"
+    },
+    {
+      "git_blob": "743a77bdde576948b3c6cd00bca9e2e99f6667fb",
+      "module": "projectkoios.integrations.quantumespresso.pw.scf.projection",
+      "path": "src/python/projectkoios/integrations/quantumespresso/pw/scf/projection.py",
+      "sha256": "6d7d9bf4d3a7f87f65626934ee8a0070bbb4645c84c331021710cc2f15667df4"
+    },
+    {
+      "git_blob": "0aac1d8c8c038c9c399b125bf737c1060b856c01",
+      "module": "projectkoios.integrations.vasp.pw_dft_scf.configuration",
+      "path": "src/python/projectkoios/integrations/vasp/pw_dft_scf/configuration.py",
+      "sha256": "681fcee0d1919d7b74a53ab864f6cafea3c345537310da0139c30f67911f7534"
+    },
+    {
+      "git_blob": "6b696ee56f451bec7d56e27a00246a4ff687def9",
+      "module": "projectkoios.integrations.vasp.pw_dft_scf.projection",
+      "path": "src/python/projectkoios/integrations/vasp/pw_dft_scf/projection.py",
+      "sha256": "7d0a9aafe336bb8117540b1e8313ea529ab652aa557675621583bb0a30b943fb"
+    }
+  ],
+  "schema_version": 1,
+  "simulations_commit": "24dffe10c29e60afcd5fe07aaacb84921a41a43d",
+  "simulations_tree": "b7897a05de39072126e6162ce6e8b8fb25be5f31"
+}

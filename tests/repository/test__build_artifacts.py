@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import os
 import shutil
 import subprocess
@@ -17,6 +18,41 @@ import projectkoios.simulations
 
 _ROOT = Path(__file__).resolve().parents[2]
 _EPOCH = "1758931200"
+_SDIST_INVENTORY = _ROOT / "tests/fixtures/artifacts/sdist-inventory.txt"
+_SDIST_INVENTORY_SHA256 = (
+    "3712d25c8b034b58f9ef82d694cc54cf8261c55660eaf76f962e5fd67ea13a88"
+)
+_WHEEL_INVENTORY = {
+    "projectkoios/applications/__init__.py",
+    "projectkoios/applications/py.typed",
+    "projectkoios/applications/pw_dft_relaxation/__init__.py",
+    "projectkoios/applications/pw_dft_relaxation/composition.py",
+    "projectkoios/applications/pw_dft_relaxation/workflow/__init__.py",
+    "projectkoios/applications/pw_dft_relaxation/workflow/base.py",
+    "projectkoios/applications/pw_dft_relaxation/workflow/definition.py",
+    "projectkoios/applications/pw_dft_scf/__init__.py",
+    "projectkoios/applications/pw_dft_scf/comparison.py",
+    "projectkoios/applications/pw_dft_scf/configuration.py",
+    "projectkoios/applications/pw_dft_scf/recipe.py",
+    "projectkoios/applications/pw_dft_scf/replay.py",
+    "projectkoios/applications/pw_dft_scf/convergence/__init__.py",
+    "projectkoios/applications/pw_dft_scf/convergence/assessment.py",
+    "projectkoios/applications/pw_dft_scf/convergence/base.py",
+    "projectkoios/applications/pw_dft_scf/convergence/comparison.py",
+    "projectkoios/applications/pw_dft_scf/convergence/controller.py",
+    "projectkoios/applications/pw_dft_scf/convergence/policy.py",
+    "projectkoios/applications/pw_dft_scf/workflow/__init__.py",
+    "projectkoios/applications/pw_dft_scf/workflow/base.py",
+    "projectkoios/applications/pw_dft_scf/workflow/definition.py",
+    "projectkoios/applications/pw_dft_scf/workflow/facade.py",
+    "projectkoios_applications-0.1.0.dev0.dist-info/licenses/LICENSE",
+    "projectkoios_applications-0.1.0.dev0.dist-info/licenses/NOTICE",
+    "projectkoios_applications-0.1.0.dev0.dist-info/licenses/THIRD_PARTY_NOTICES.md",
+    "projectkoios_applications-0.1.0.dev0.dist-info/METADATA",
+    "projectkoios_applications-0.1.0.dev0.dist-info/WHEEL",
+    "projectkoios_applications-0.1.0.dev0.dist-info/top_level.txt",
+    "projectkoios_applications-0.1.0.dev0.dist-info/RECORD",
+}
 
 
 class BuildArtifactTest(unittest.TestCase):
@@ -44,19 +80,38 @@ class BuildArtifactTest(unittest.TestCase):
 
     @staticmethod
     def _source_copy(destination: Path) -> Path:
-        shutil.copytree(
-            _ROOT,
-            destination,
-            ignore=shutil.ignore_patterns(
-                ".git",
-                "dist",
-                "*.egg-info",
-                "__pycache__",
-                ".pytest_cache",
-                ".mypy_cache",
-                ".ruff_cache",
-            ),
-        )
+        if (_ROOT / ".git").exists():
+            tree = subprocess.run(
+                ["git", "write-tree"],
+                cwd=_ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            archive = subprocess.run(
+                ["git", "archive", tree],
+                cwd=_ROOT,
+                check=True,
+                capture_output=True,
+            ).stdout
+            destination.mkdir()
+            with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
+                tar.extractall(destination, filter="data")
+        else:
+            shutil.copytree(
+                _ROOT,
+                destination,
+                ignore=shutil.ignore_patterns(
+                    ".git",
+                    "build",
+                    "dist",
+                    "*.egg-info",
+                    "__pycache__",
+                    ".pytest_cache",
+                    ".mypy_cache",
+                    ".ruff_cache",
+                ),
+            )
         return destination
 
     @staticmethod
@@ -77,35 +132,21 @@ class BuildArtifactTest(unittest.TestCase):
 
     def _assert_wheel(self, wheel: Path) -> None:
         with zipfile.ZipFile(wheel) as archive:
-            names = set(archive.namelist())
-            for filename in ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"):
-                self.assertTrue(
-                    any(name.endswith(f"licenses/{filename}") for name in names)
-                )
-            self.assertIn("projectkoios/applications/pw_dft_scf/replay.py", names)
-            self.assertIn(
-                "projectkoios/applications/pw_dft_relaxation/composition.py", names
-            )
-            self.assertFalse(
-                any(name.startswith("projectkoios/integrations/") for name in names)
-            )
-            self.assertFalse(
-                any(name.startswith(("tests/", "build_backend/")) for name in names)
-            )
+            self.assertEqual(set(archive.namelist()), _WHEEL_INVENTORY)
 
     def _assert_sdist(self, sdist: Path | None) -> None:
         assert sdist is not None
+        inventory_bytes = _SDIST_INVENTORY.read_bytes()
+        self.assertEqual(
+            hashlib.sha256(inventory_bytes).hexdigest(),
+            _SDIST_INVENTORY_SHA256,
+        )
+        expected = set(inventory_bytes.decode("utf-8").splitlines())
         with tarfile.open(sdist, "r:gz") as archive:
-            names = archive.getnames()
-        for suffix in (
-            "/LICENSE",
-            "/NOTICE",
-            "/THIRD_PARTY_NOTICES.md",
-            "/build_backend/projectkoios_build.py",
-            "/tests/repository/test__build_artifacts.py",
-            "/tests/fixtures/pw_dft_scf/qe-retained-convergence-normalized.json",
-        ):
-            self.assertTrue(any(name.endswith(suffix) for name in names), suffix)
+            actual = {
+                name.split("/", 1)[1] for name in archive.getnames() if "/" in name
+            }
+        self.assertEqual(actual, expected)
 
     def _assert_isolated_import(self, wheel: Path) -> None:
         simulations = str(
