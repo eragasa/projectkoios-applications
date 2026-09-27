@@ -11,7 +11,7 @@ from projectkoios.applications.pw_dft_scf.recipe import (
     PwDftScfKpointConvergenceRecipe,
     PwDftScfSingleCalculationRecipe,
 )
-from tests.projectkoios.applications.pw_dft_scf.support import silicon_scf_request
+from tests.projectkoios.applications.support import silicon_scf_request
 
 
 class PwDftScfRecipeTest(unittest.TestCase):

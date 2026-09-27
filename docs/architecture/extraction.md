@@ -19,12 +19,17 @@ subsequent redesign remain auditable:
 2. the QE relaxation command exposes an inherited `--execute` flag.
 
 Neither path is accepted behavior at the transfer checkpoint. The immediate
-corrective milestone must replace them with first-class application-owned
-composition/workflow/CPN contracts. It must consume public provider evidence
-contracts rather than copy raw corpora, and external execution authority must
-remain explicit, separate, and default-denied.
+corrective milestone replaces them with first-class application-owned
+composition/workflow/CPN contracts. SCF replay now consumes provider-normalized
+application evidence rather than copying raw corpora. Relaxation now composes
+neutral requests with provider input projection and emits only a non-authorizing
+handoff: external execution authority remains explicit, separate, and absent
+from this repository.
 
-The neutral simulation API is verified against commit `51427a0`. VASP and QE
-handoffs are recorded at `a736800` and `48d3c43`, but no single committed
-simulations revision currently contains both. Combined-provider behavior is
-therefore not yet validated or claimed.
+The neutral simulation API originates at commit `51427a0`. VASP and QE handoffs
+are recorded at `a736800` and `48d3c43`. Combined-provider behavior is verified
+against immutable simulations commit `24dffe10c29e60afcd5fe07aaacb84921a41a43d`,
+tree `b7897a05de39072126e6162ce6e8b8fb25be5f31`, whose parents are the exact
+reviewed VASP and QE heads. Validation covers provider imports, all eight SCF
+campaign projections, QE relaxation composition, and replay composition without
+calculator execution.

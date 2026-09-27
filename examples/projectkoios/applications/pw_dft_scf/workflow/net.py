@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
-from snakes.nets import Expression, PetriNet, Place, Test, Transition, Variable
-from snakes.typing import Instance
+from snakes.nets import (  # type: ignore[import-untyped]
+    Expression,
+    PetriNet,
+    Place,
+    Test,
+    Transition,
+    Variable,
+)
+from snakes.typing import Instance  # type: ignore[import-untyped]
 
 from projectkoios.simulations.dft.pw.scf.actions import (
     AnalyzePwDftScfOutput,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from pathlib import Path
 
 from examples.projectkoios.applications.pw_dft_scf.runner.environment import (  # noqa: E501
@@ -125,6 +125,8 @@ class DeclaredScfReplayRunnerCommand:
             environment=environment,
             artifact_root=arguments.artifact_root.resolve(),
         ).replay(arguments.campaign.resolve())
+        if not is_dataclass(outcome):
+            raise TypeError("workflow outcome must be a dataclass")
         print(json.dumps(asdict(outcome), indent=2, sort_keys=True))
         return 0
 

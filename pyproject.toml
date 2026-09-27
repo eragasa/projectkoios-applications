@@ -1,6 +1,7 @@
 [build-system]
 requires = ["setuptools==84.0.0"]
-build-backend = "setuptools.build_meta"
+build-backend = "projectkoios_build"
+backend-path = ["build_backend"]
 
 [project]
 name = "projectkoios-applications"
@@ -51,6 +52,7 @@ namespaces = true
 testpaths = ["tests"]
 addopts = "--strict-markers"
 markers = [
+    "adversarial: malformed, unauthorized, or boundary-hostile cases",
     "integration: interaction between multiple committed component contracts",
     "property: deterministic bounded property cases",
     "smoke: quick check that a non-calculator entry point performs its basic operation",
@@ -72,5 +74,5 @@ known-first-party = ["projectkoios", "tests"]
 python_version = "3.14"
 strict = true
 explicit_package_bases = true
-files = ["src/python/projectkoios/applications", "tests"]
+files = ["build_backend", "src/python/projectkoios/applications", "tests"]
 mypy_path = "src/python"

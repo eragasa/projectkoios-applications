@@ -23,16 +23,18 @@ separate authority outside this repository.
 The accepted 105-path application overlay and 17 provider-routed candidates
 come from Project Koios Frankenstein commit
 `3eb562f2d6167ec20d6f2c892c517509a7abf283`. `TRANSFER.toml` records all 122
-source identities and adaptations. Two transferred QE paths intentionally retain
-known source limitations for the provenance-preserving transfer commit: replay
-has an unresolved evidence import, and the relaxation command exposes inherited
-`--execute` behavior. Neither path is validated or authorized for use until the
-immediate corrective commit replaces it with first-class application contracts.
+source identities and adaptations. The provenance-preserving transfer commit
+retains two known QE source limitations: an unresolved replay evidence import
+and inherited direct `--execute` behavior. The immediate corrective commit then
+replaces them with first-class application replay and relaxation-composition
+contracts. The application layer exposes no calculator execution authority.
 
-Full cross-provider example validation remains gated on one committed,
-installable `projectkoios-simulations` revision containing both the VASP and
-Quantum ESPRESSO integrations. Until then, no combined-provider compatibility is
-claimed.
+Cross-provider example validation uses the immutable combined
+`projectkoios-simulations` commit
+`24dffe10c29e60afcd5fe07aaacb84921a41a43d` (tree
+`b7897a05de39072126e6162ce6e8b8fb25be5f31`). Both VASP and Quantum ESPRESSO
+campaign projection, QE relaxation composition, and replay composition are
+verified without calculator execution.
 
 ## Development
 

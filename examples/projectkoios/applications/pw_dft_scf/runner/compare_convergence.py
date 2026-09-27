@@ -183,6 +183,7 @@ class ConvergenceComparisonRunner:
         value = mapping.get(key)
         if type(value) not in {int, float}:
             raise ValueError(f"{key} must be a number")
+        assert isinstance(value, (int, float))
         return float(value)
 
 

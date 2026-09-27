@@ -1,7 +1,9 @@
-# PW-DFT relaxation application candidate
+# PW-DFT relaxation application composition
 
-This capability directory initially preserves one provenance-bound QE path with
-its inherited direct `--execute` behavior. It is not accepted or authorized for
-use. The immediate corrective milestone replaces it with first-class
-application-owned composition and a separate, explicit, default-denied external
-execution authority contract.
+The transferred QE execution path is retained in Git history at
+`4d58422e2ffed6e81c7ef2c73c8e484a8c8358c3`. Its current replacement composes
+a `PwDftRelaxationCampaign` with a public projection integration and returns a
+non-authorizing handoff.
+
+There is no `--execute` option and no calculator runner. External execution
+requires a separate authority outside this repository.
