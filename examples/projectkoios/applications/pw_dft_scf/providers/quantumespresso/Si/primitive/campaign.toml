@@ -1,0 +1,15 @@
+schema_version = 2
+integration = "quantum-espresso"
+mode = "single"
+campaign_id = "silicon-scf-qe"
+structure_id = "Si.PrimitiveUnitCell"
+sampling_profile = "single-qe"
+projection_profile = "qe-sssp-pbe-efficiency"
+
+[runtime]
+maximum_internal_firings = 1000
+
+[replay]
+evaluation_id = "silicon-qe-scf"
+task_id = "retained-qe-task"
+output_artifact_id = "workspace/runs/si-scf-example/qe/pw.out"

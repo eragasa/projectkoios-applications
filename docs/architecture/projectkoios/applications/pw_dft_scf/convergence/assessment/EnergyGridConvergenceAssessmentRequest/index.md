@@ -1,0 +1,3 @@
+# EnergyGridConvergenceAssessmentRequest
+
+Fields: `observations`, `policy`.

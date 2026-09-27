@@ -1,0 +1,12 @@
+schema_version = 2
+integration = "vasp"
+mode = "kpoint"
+campaign_id = "silicon-kpoints-vasp"
+structure_id = "Si.PrimitiveUnitCell"
+sampling_profile = "convergence-base"
+coordinate_profile = "k-points"
+policy_profile = "energy-1mev-two-increments"
+projection_profile = "vasp-static-scf"
+
+[runtime]
+maximum_internal_firings = 1000

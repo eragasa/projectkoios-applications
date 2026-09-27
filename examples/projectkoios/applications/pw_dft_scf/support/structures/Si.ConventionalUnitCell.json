@@ -1,0 +1,95 @@
+{
+  "atoms": [
+    {
+      "fractional_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "symbol": "Si"
+    },
+    {
+      "fractional_position": [
+        0.0,
+        0.5,
+        0.5
+      ],
+      "symbol": "Si"
+    },
+    {
+      "fractional_position": [
+        0.5,
+        0.0,
+        0.5
+      ],
+      "symbol": "Si"
+    },
+    {
+      "fractional_position": [
+        0.5,
+        0.5,
+        0.0
+      ],
+      "symbol": "Si"
+    },
+    {
+      "fractional_position": [
+        0.25,
+        0.25,
+        0.25
+      ],
+      "symbol": "Si"
+    },
+    {
+      "fractional_position": [
+        0.25,
+        0.75,
+        0.75
+      ],
+      "symbol": "Si"
+    },
+    {
+      "fractional_position": [
+        0.75,
+        0.25,
+        0.75
+      ],
+      "symbol": "Si"
+    },
+    {
+      "fractional_position": [
+        0.75,
+        0.75,
+        0.25
+      ],
+      "symbol": "Si"
+    }
+  ],
+  "lattice": {
+    "A": {
+      "a1": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "a2": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "a3": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "vector_axis": "columns"
+    },
+    "lattice_parameter": {
+      "magnitude": 5.43,
+      "unit": "angstrom"
+    }
+  },
+  "representation": "conventional",
+  "schema_version": 1,
+  "structure_id": "Si.ConventionalUnitCell"
+}

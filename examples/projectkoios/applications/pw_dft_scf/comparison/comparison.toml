@@ -1,0 +1,14 @@
+schema_version = 2
+comparison_id = "silicon-qe-minus-vasp"
+input_alignment_id = "silicon-scf-input-alignment-v1"
+left_campaign = "../providers/quantumespresso/Si/primitive/campaign.toml"
+right_campaign = "../providers/vasp/Si/primitive/campaign.toml"
+
+[alignment.left]
+kind = "explicit-reference"
+reference_energy_ev_per_atom = -149.96614065567152
+reference_id = "qe-upf-total-psenergy"
+qualification = "QE UPF-header reference; not a matched isolated-atom result."
+
+[alignment.right]
+kind = "native"

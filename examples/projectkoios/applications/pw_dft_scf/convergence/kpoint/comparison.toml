@@ -1,0 +1,6 @@
+schema_version = 1
+kind = "k-points"
+comparison_id = "silicon-kpoints-qe-vasp"
+input_alignment_id = "silicon-scf-input-alignment-v1"
+left_campaign = "../../providers/quantumespresso/Si/primitive/convergence/kpoint/campaign.toml"
+right_campaign = "../../providers/vasp/Si/primitive/convergence/kpoint/campaign.toml"

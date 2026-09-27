@@ -1,0 +1,3 @@
+schema_version = 1
+catalog = "catalog.toml"
+structure_repository = "../../support/structures"

@@ -1,0 +1,12 @@
+schema_version = 2
+integration = "quantum-espresso"
+mode = "cutoff"
+campaign_id = "silicon-encut-qe"
+structure_id = "Si.PrimitiveUnitCell"
+sampling_profile = "convergence-base"
+coordinate_profile = "encut"
+policy_profile = "energy-1mev-two-increments"
+projection_profile = "qe-sssp-pbe-efficiency"
+
+[runtime]
+maximum_internal_firings = 1000

@@ -1,0 +1,15 @@
+schema_version = 2
+integration = "vasp"
+mode = "single"
+campaign_id = "silicon-scf-vasp"
+structure_id = "Si.PrimitiveUnitCell"
+sampling_profile = "single-vasp"
+projection_profile = "vasp-static-scf"
+
+[runtime]
+maximum_internal_firings = 1000
+
+[replay]
+evaluation_id = "silicon-vasp-scf"
+task_id = "retained-vasp-task"
+output_artifact_id = "workspace/runs/si-scf-example/vasp/OUTCAR"

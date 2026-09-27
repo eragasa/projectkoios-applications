@@ -1,0 +1,64 @@
+schema_version = 1
+
+[sampling.single-vasp]
+kpoint_mesh = [8, 8, 8]
+kpoint_shift = [0, 0, 0]
+wavefunction_cutoff_ev = 400.0
+
+[sampling.single-qe]
+kpoint_mesh = [8, 8, 8]
+kpoint_shift = [0, 0, 0]
+wavefunction_cutoff_ev = 408.1707936897154
+
+[sampling.convergence-base]
+kpoint_mesh = [8, 8, 8]
+kpoint_shift = [0, 0, 0]
+wavefunction_cutoff_ev = 400.0
+
+[coordinates.k-points]
+mesh_densities = [4, 6, 8]
+wavefunction_cutoffs_ev = [400.0]
+
+[coordinates.encut]
+mesh_densities = [8]
+wavefunction_cutoffs_ev = [300.0, 350.0, 400.0]
+
+[coordinates.cross]
+mesh_densities = [4, 6, 8]
+wavefunction_cutoffs_ev = [300.0, 350.0, 400.0]
+
+[policy.energy-1mev-two-increments]
+tolerance_mev_per_atom = 1.0
+required_consecutive_deltas = 2
+mesh_increment = 2
+cutoff_increment_ev = 50.0
+extension_steps = 2
+maximum_mesh_density = 20
+maximum_cutoff_ev = 1200.0
+maximum_grid_points = 80
+
+[projection.qe-sssp-pbe-efficiency]
+charge_density_cutoff_ratio = 8.0
+electronic_tolerance_ry = 1.0e-6
+prefix = "system"
+pseudo_dir = "./"
+outdir = "./tmp/"
+input_filename = "pw.in"
+coordinate_precision = 8
+
+[[projection.qe-sssp-pbe-efficiency.species]]
+symbol = "Si"
+mass_amu = 28.086
+pseudopotential_filename = "Si.pbe-n-rrkjus_psl.1.0.0.UPF"
+
+[projection.vasp-static-scf]
+profile_kind = "vasp-static-scf"
+system_label = "Silicon SCF"
+poscar_comment = "Silicon primitive cell"
+algorithm = "Normal"
+maximum_electronic_steps = 60
+electronic_tolerance_ev = 1.0e-6
+smearing_method = 0
+smearing_width_ev = 0.05
+spin_polarization = 1
+real_space_projection = false
