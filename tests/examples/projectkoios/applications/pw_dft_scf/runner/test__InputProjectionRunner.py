@@ -152,7 +152,23 @@ class InputProjectionRunnerTest(unittest.TestCase):
             with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as source:
                 source.extractall(archive_root, filter="data")
             provider_root = archive_root / "src/python"
-            completed = self._run_isolated_graph(provider_root)
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-I",
+                    str(
+                        self.repository
+                        / "tests/support/exact_provider_graph_probe.py"
+                    ),
+                    "--provider-root",
+                    str(provider_root),
+                    "--repository",
+                    str(self.repository),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
         loaded = json.loads(completed.stdout)
         expected_modules = {
             item["module"]: {
@@ -180,65 +196,6 @@ class InputProjectionRunnerTest(unittest.TestCase):
         for expected in self.fixture["provider_modules"]:
             module = importlib.import_module(expected["module"])
             self._assert_module_hash(module, expected["sha256"])
-
-    def _run_isolated_graph(
-        self, provider_root: Path
-    ) -> subprocess.CompletedProcess[str]:
-        paths = [item["path"] for item in self.fixture["campaigns"]]
-        expected = {
-            item["module"]: item["path"].removeprefix("src/python/")
-            for item in self.fixture["provider_modules"]
-        }
-        script = f"""
-import hashlib, json, sys, tempfile
-from pathlib import Path
-assert not any(name == 'projectkoios' or name.startswith('projectkoios.') for name in sys.modules)
-sys.path[:0] = [
-    {str(provider_root)!r},
-    {str(self.repository / "src/python")!r},
-    {str(self.repository)!r},
-]
-from examples.projectkoios.applications.pw_dft_scf.runner.environment import (
-    WorkflowRunnerEnvironment,
-)
-from examples.projectkoios.applications.pw_dft_scf.runner.render_inputs import (
-    InputProjectionRunner,
-)
-root = Path({str(provider_root)!r}).resolve()
-example = Path({str(self.example)!r})
-expected = json.loads({json.dumps(expected, sort_keys=True)!r})
-environment = WorkflowRunnerEnvironment.load(example / 'runner/config/runner.toml')
-with tempfile.TemporaryDirectory() as directory:
-    for index, relative in enumerate({paths!r}):
-        InputProjectionRunner(environment).render(
-            example / relative,
-            Path(directory) / str(index),
-        )
-prefixes = (
-    'projectkoios.integrations.quantumespresso',
-    'projectkoios.integrations.vasp',
-)
-loaded = {{}}
-for name, module in sys.modules.items():
-    if not name.startswith(prefixes) or not getattr(module, '__file__', None):
-        continue
-    path = Path(module.__file__).resolve()
-    expected_path = (root / expected[name]).resolve()
-    assert path == expected_path
-    assert path.is_relative_to(root)
-    loaded[name] = {{
-        'path': path.relative_to(root).as_posix(),
-        'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
-    }}
-assert set(loaded) == set(expected)
-print(json.dumps(loaded, sort_keys=True))
-"""
-        return subprocess.run(
-            [sys.executable, "-I", "-c", script],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
 
     def _assert_module_hash(self, module: ModuleType, expected_sha256: str) -> None:
         module_path = Path(module.__file__ or "")

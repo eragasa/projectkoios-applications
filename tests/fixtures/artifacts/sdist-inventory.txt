@@ -304,3 +304,5 @@ projectkoios_applications-0.1.0.dev0/tests/repository/test__build_artifacts.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__calculator_authority.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__dependency_boundaries.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__transfer_inventory.py
+projectkoios_applications-0.1.0.dev0/tests/support
+projectkoios_applications-0.1.0.dev0/tests/support/exact_provider_graph_probe.py

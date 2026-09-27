@@ -20,7 +20,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _EPOCH = "1758931200"
 _SDIST_INVENTORY = _ROOT / "tests/fixtures/artifacts/sdist-inventory.txt"
 _SDIST_INVENTORY_SHA256 = (
-    "a34c53c738f7cd39aeba328f1db7013bdd5ece439580e2b94fe4843c84b23a4d"
+    "c2cf70fa64876dea58c3a299a41b145d21ca268d86ef4a3f65df2bf6af7cdbba"
 )
 _WHEEL_INVENTORY = (
     "projectkoios/applications/__init__.py",
