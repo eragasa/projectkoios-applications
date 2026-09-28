@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import stat
 from dataclasses import dataclass
 from enum import StrEnum
@@ -20,27 +21,37 @@ from projectkoios.ingestion import (
     OllamaTransport,
     PageRegionSelection,
     PdfDependencyUnavailableError,
+    PdfExtractionArtifactBundle,
+    PdfExtractionArtifactLimits,
     PdfRegionRenderLimitError,
     RenderedRegion,
     contract_dict,
+    extract_pdf_bytes_artifacts,
     serialize_contract,
 )
-from projectkoios.ingestion.cli import ingest_pdf_artifacts
 from projectkoios.ingestion.models import ExtractionResult
 from projectkoios.references import (
     AuthorizedRoot,
     PdfCorpusDiscoveryPlan,
     PdfCorpusRoot,
     PdfSourceObservation,
+    PlaceholderProbeSupport,
     RootStorageClass,
     rebind_pdf_source,
 )
 
 from .multimodal import PdfCorpusMultimodalPolicy
-from .plan import PdfCorpusIngestionPlan, PdfCorpusPlanItem
+from .plan import (
+    MAX_OUTPUT_ARTIFACT_FILES,
+    PdfCorpusIngestionPlan,
+    PdfCorpusPlanItem,
+)
 
 _MANIFEST = "pdf-corpus-ingestion-manifest.json"
-_MAX_OUTPUT_FILES = 10_000
+_MAX_OUTPUT_ARTIFACT_BYTES = 50_000_000
+_MAX_PAGE_TEXT_ARTIFACT_BYTES = 16_000_000
+_MAX_OUTPUT_TOTAL_ARTIFACT_BYTES = 256_000_000
+_MAX_OUTPUT_ENTRIES = MAX_OUTPUT_ARTIFACT_FILES + 16
 _MAX_MANIFEST_BYTES = 10_000_000
 _MAX_MANIFEST_DEPTH = 32
 _MAX_MANIFEST_ITEMS = 100_000
@@ -57,12 +68,12 @@ class PdfCorpusRunError(RuntimeError):
         *,
         raw_published_content_ids: tuple[str, ...] = (),
         pending_content_ids: tuple[str, ...] = (),
-        temporary_output: str | None = None,
+        partial_output: str | None = None,
     ) -> None:
         super().__init__(message)
         self.raw_published_content_ids = raw_published_content_ids
         self.pending_content_ids = pending_content_ids
-        self.temporary_output = temporary_output
+        self.partial_output = partial_output
 
 
 class PdfCorpusRunAction(StrEnum):
@@ -125,20 +136,27 @@ class _Prepared:
     existing_status: str | None
 
 
-class _Ingester(Protocol):
+@dataclass(frozen=True, slots=True)
+class _Rebound:
+    item: PdfCorpusPlanItem
+    source: PdfSourceObservation
+    source_root: AuthorizedRoot
+    source_relative: PurePosixPath
+
+
+class _ByteExtractor(Protocol):
     def __call__(
         self,
-        pdf: Path,
+        content: bytes,
         *,
         source_id: str,
-        output: Path,
-        raw_text_directory: Path | None = None,
-        cache_root: Path | None = None,
-        locator: str | None = None,
-        low_text_threshold: int = 40,
-        expected_source_sha256: str | None = None,
-        expected_source_byte_size: int | None = None,
-    ) -> ExtractionResult: ...
+        locator: str,
+        low_text_character_threshold: int,
+        expected_source_sha256: str,
+        expected_source_byte_size: int,
+        maximum_pages: int,
+        artifact_limits: PdfExtractionArtifactLimits | None = None,
+    ) -> PdfExtractionArtifactBundle: ...
 
 
 def preflight_pdf_corpus_run(
@@ -168,24 +186,39 @@ def preflight_pdf_corpus_run(
     staging = _local_root(staging_root_path, "PDF corpus staging")
     output = _local_root(output_root_path, "PDF corpus output")
     _require_private(staging.path)
-    _require_disjoint(roots, staging, output)
+    _require_lexically_disjoint(roots, staging, output)
     sources = {item.observation_id: item for item in discovery.processable_sources}
-    prepared: list[_Prepared] = []
+    rebound_items: list[_Rebound] = []
+    bound_roots: dict[str, AuthorizedRoot] = {}
     for item in plan.selected_items:
         source = sources.get(item.selected_location.observation_id)
         if source is None:
             raise PdfCorpusRunError("selected source is absent from discovery")
-        rebound = rebind_pdf_source(source, roots)
+        rebound_source = rebind_pdf_source(source, roots)
         if (source.sha256, source.byte_size) != (item.sha256, item.byte_size):
             raise PdfCorpusRunError("selected source conflicts with plan")
-        stage_action = _stage_action(staging, plan, item)
-        output_action, status = _output_action(output, plan, item)
-        prepared.append(
-            _Prepared(
+        bound_roots.setdefault(source.root_alias, rebound_source.root)
+        rebound_items.append(
+            _Rebound(
                 item,
                 source,
-                rebound.root,
-                rebound.relative_path,
+                rebound_source.root,
+                rebound_source.relative_path,
+            )
+        )
+    _bind_supported_roots(roots, discovery, bound_roots)
+    _require_bound_disjoint(bound_roots, staging, output)
+
+    prepared: list[_Prepared] = []
+    for prepared_source in rebound_items:
+        stage_action = _stage_action(staging, plan, prepared_source.item)
+        output_action, status = _output_action(output, plan, prepared_source.item)
+        prepared.append(
+            _Prepared(
+                prepared_source.item,
+                prepared_source.source,
+                prepared_source.source_root,
+                prepared_source.source_relative,
                 stage_action,
                 output_action,
                 status,
@@ -203,7 +236,7 @@ def run_pdf_corpus_ingestion(
     apply: bool,
     ollama_endpoint: str | None = None,
     ollama_transport: OllamaTransport | None = None,
-    ingester: _Ingester = ingest_pdf_artifacts,
+    extractor: _ByteExtractor = extract_pdf_bytes_artifacts,
 ) -> PdfCorpusRunReport:
     """Dry-run full preflight or apply one exact bounded tranche."""
     prepared, staging, output, discovery = preflight_pdf_corpus_run(
@@ -261,7 +294,6 @@ def run_pdf_corpus_ingestion(
             published.append(value.item.content_id)
             statuses.append(value.existing_status or "failed")
             continue
-        temporary = _temporary(plan, value.item)
         try:
             status, consumed = _publish(
                 plan,
@@ -271,18 +303,18 @@ def run_pdf_corpus_ingestion(
                 page_budget,
                 ollama_endpoint,
                 ollama_transport,
-                ingester,
+                extractor,
                 discovery.coverage_status,
                 deferred_content,
             )
         except Exception as error:
             raise PdfCorpusRunError(
-                f"tranche failed after {len(published)} raw publications",
+                f"tranche failed after {len(published)} completed publications",
                 raw_published_content_ids=tuple(published),
                 pending_content_ids=tuple(
                     candidate.item.content_id for candidate in prepared[index:]
                 ),
-                temporary_output=temporary.as_posix(),
+                partial_output=value.item.output_directory.as_posix(),
             ) from error
         page_budget -= consumed
         published.append(value.item.content_id)
@@ -309,30 +341,46 @@ def _publish(
     page_budget: int,
     endpoint: str | None,
     transport: OllamaTransport | None,
-    ingester: _Ingester,
+    extractor: _ByteExtractor,
     coverage: str,
     deferred_content: int,
 ) -> tuple[str, int]:
     item = prepared.item
     _parents(output, item.output_directory)
-    temporary_relative = _temporary(plan, item)
-    temporary = output.create_directory(temporary_relative)
-    _require_private(temporary.path)
-    staged_path = staging.child_path(item.staging_path)
-    extraction = ingester(
-        staged_path,
+    destination = output.create_directory(item.output_directory)
+    _require_private(destination.path)
+    payload = staging.read_bytes(
+        item.staging_path,
+        max_bytes=plan.maximum_file_bytes,
+    )
+    artifact_limits = _extraction_artifact_limits(plan)
+    bundle = extractor(
+        payload,
         source_id=item.source_id,
-        output=temporary.path / "raw-extraction.json",
-        raw_text_directory=temporary.path / "raw-pages",
-        cache_root=None,
         locator=(
             f"{item.selected_location.root_alias}:"
             f"{item.selected_location.relative_path.as_posix()}"
         ),
-        low_text_threshold=plan.low_text_threshold,
+        low_text_character_threshold=plan.low_text_threshold,
         expected_source_sha256=item.sha256,
         expected_source_byte_size=item.byte_size,
+        maximum_pages=plan.maximum_pdf_pages,
+        artifact_limits=artifact_limits,
     )
+    if (
+        not isinstance(bundle, PdfExtractionArtifactBundle)
+        or bundle.configuration.low_text_character_threshold != plan.low_text_threshold
+        or bundle.configuration.maximum_pages != plan.maximum_pdf_pages
+        or bundle.artifact_limits != artifact_limits
+    ):
+        raise PdfCorpusRunError("extraction artifact bundle conflicts with the plan")
+    for artifact in bundle.artifacts:
+        _write(
+            destination,
+            PurePosixPath(artifact.relative_path),
+            artifact.content,
+        )
+    extraction = bundle.result
     unresolved = _unresolved(extraction, plan.multimodal_policy)
     selected = unresolved[: plan.multimodal_policy.maximum_pages_per_document]
     deferred_document = unresolved[len(selected) :]
@@ -341,8 +389,8 @@ def _publish(
     resolution = _resolve(
         plan,
         item,
-        staging,
-        temporary,
+        destination,
+        payload,
         extraction,
         selected_for_tranche,
         deferred_document,
@@ -353,26 +401,25 @@ def _publish(
     manifest = _manifest_value(
         plan,
         item,
-        temporary,
+        destination,
         extraction,
         resolution,
         coverage,
         deferred_content,
     )
-    temporary.write_bytes(
+    destination.write_bytes(
         _MANIFEST,
         _canonical(manifest).encode(),
         replace=False,
     )
-    output.rename_child(temporary_relative, item.output_directory)
     return str(resolution["status"]), len(selected_for_tranche)
 
 
 def _resolve(
     plan: PdfCorpusIngestionPlan,
     item: PdfCorpusPlanItem,
-    staging: AuthorizedRoot,
-    temporary: AuthorizedRoot,
+    destination: AuthorizedRoot,
+    payload: bytes,
     extraction: ExtractionResult,
     selected: tuple[int, ...],
     deferred_document: tuple[int, ...],
@@ -394,10 +441,6 @@ def _resolve(
             None,
         )
 
-    payload = staging.read_bytes(
-        item.staging_path,
-        max_bytes=plan.maximum_file_bytes,
-    )
     renderer = plan.multimodal_policy.renderer()
     regions: list[dict[str, object]] = []
     selections: list[OllamaMultimodalSelection] = []
@@ -428,9 +471,9 @@ def _resolve(
         stem = f"page-{page + 1:04d}-{region.content_sha256}"
         png = PurePosixPath(f"multimodal/regions/{stem}.png")
         evidence = PurePosixPath(f"multimodal/regions/{stem}.json")
-        _write(temporary, png, region.content)
+        _write(destination, png, region.content)
         _write(
-            temporary,
+            destination,
             evidence,
             _canonical(_region_evidence(region)).encode(),
         )
@@ -473,7 +516,7 @@ def _resolve(
         result = processor.process(request)
         relative = PurePosixPath(f"multimodal/result-{index:04d}.json")
         _write(
-            temporary,
+            destination,
             relative,
             (serialize_contract(result) + "\n").encode(),
         )
@@ -536,7 +579,7 @@ def _manifest_value(
     deferred_content: int,
 ) -> dict[str, object]:
     identity: dict[str, object] = {
-        "artifact_files": _inventory(root, plan.maximum_file_bytes),
+        "artifact_files": _inventory(root),
         "content_id": item.content_id,
         "corpus_coverage_status": coverage,
         "deferred_content_count": deferred_content,
@@ -699,7 +742,7 @@ def _verify_output(
         != PdfCorpusDiscoveryPlan.from_json(plan.discovery_plan_json).coverage_status
         or type(value["deferred_content_count"]) is not int
         or value["deferred_content_count"] != len(plan.items) - len(plan.selected_items)
-        or value["artifact_files"] != _inventory(root, plan.maximum_file_bytes)
+        or value["artifact_files"] != _inventory(root)
     ):
         raise PdfCorpusRunError("existing output is incomplete or different")
     raw = value["raw_evidence"]
@@ -757,6 +800,7 @@ def _verify_resolution_summary(
     policy = plan.multimodal_policy
     if (
         pages != tuple(sorted(set(pages)))
+        or any(page >= plan.maximum_pdf_pages for page in pages)
         or len(selected) > policy.maximum_pages_per_tranche
         or len(selected) + len(deferred_tranche) > policy.maximum_pages_per_document
         or (
@@ -1030,8 +1074,6 @@ def _output_action(
 ) -> tuple[PdfCorpusRunAction, str | None]:
     state = root.state(item.output_directory)
     if state == "missing":
-        if root.state(_temporary(plan, item)) != "missing":
-            raise PdfCorpusRunError("incomplete temporary output already exists")
         return PdfCorpusRunAction.CREATE, None
     if state != "directory":
         raise PdfCorpusRunError("output target is not a directory")
@@ -1098,19 +1140,33 @@ def _render_failure(error: Exception) -> str:
     return "render-evidence-invalid"
 
 
-def _inventory(root: AuthorizedRoot, max_bytes: int) -> list[dict[str, object]]:
+def _extraction_artifact_limits(
+    plan: PdfCorpusIngestionPlan,
+) -> PdfExtractionArtifactLimits:
+    return PdfExtractionArtifactLimits(
+        max_artifacts=plan.maximum_pdf_pages + 1,
+        max_raw_extraction_bytes=_MAX_OUTPUT_ARTIFACT_BYTES,
+        max_page_text_bytes=_MAX_PAGE_TEXT_ARTIFACT_BYTES,
+        max_total_artifact_bytes=_MAX_OUTPUT_TOTAL_ARTIFACT_BYTES,
+    )
+
+
+def _inventory(root: AuthorizedRoot) -> list[dict[str, object]]:
     paths = root.iter_files(
         suffix="",
         recursive=True,
-        max_files=_MAX_OUTPUT_FILES,
-        max_entries=_MAX_OUTPUT_FILES,
+        max_files=MAX_OUTPUT_ARTIFACT_FILES,
+        max_entries=_MAX_OUTPUT_ENTRIES,
         max_depth=8,
     )
     result: list[dict[str, object]] = []
     for path in paths:
         if path.as_posix() == _MANIFEST:
             continue
-        observed = root.observe_file(path, max_bytes=max_bytes)
+        observed = root.observe_file(
+            path,
+            max_bytes=_MAX_OUTPUT_ARTIFACT_BYTES,
+        )
         result.append(
             {
                 "byte_size": observed.byte_size,
@@ -1137,14 +1193,6 @@ def _parents(root: AuthorizedRoot, relative: PurePosixPath) -> None:
             raise PdfCorpusRunError("target parent is not a directory")
 
 
-def _temporary(
-    plan: PdfCorpusIngestionPlan,
-    item: PdfCorpusPlanItem,
-) -> PurePosixPath:
-    plan_digest = plan.plan_id.rsplit(":", 1)[-1]
-    return item.output_directory.with_name(f".koios-{item.sha256}-{plan_digest}.tmp")
-
-
 def _local_root(path: Path, label: str) -> AuthorizedRoot:
     return AuthorizedRoot.existing(
         path,
@@ -1156,28 +1204,73 @@ def _local_root(path: Path, label: str) -> AuthorizedRoot:
 
 def _require_private(path: Path) -> None:
     if stat.S_IMODE(path.stat().st_mode) & 0o077:
-        raise PdfCorpusRunError("staging/temp root must be mode 0700 or stricter")
+        raise PdfCorpusRunError("local runtime root must be mode 0700 or stricter")
 
 
-def _require_disjoint(
+def _require_lexically_disjoint(
     sources: tuple[PdfCorpusRoot, ...],
     staging: AuthorizedRoot,
     output: AuthorizedRoot,
 ) -> None:
-    values = tuple((item.alias, item.path.resolve()) for item in sources) + (
-        ("staging", staging.path),
-        ("output", output.path),
+    values = tuple((item.alias, _lexical_path_parts(item.path)) for item in sources) + (
+        ("staging", _lexical_path_parts(staging.path)),
+        ("output", _lexical_path_parts(output.path)),
     )
+    _reject_path_overlaps(values)
+
+
+def _bind_supported_roots(
+    declarations: tuple[PdfCorpusRoot, ...],
+    discovery: PdfCorpusDiscoveryPlan,
+    bound: dict[str, AuthorizedRoot],
+) -> None:
+    preflights = {item.root_alias: item for item in discovery.root_preflights}
+    for declaration in declarations:
+        preflight = preflights[declaration.alias]
+        supported = (
+            declaration.storage_class is RootStorageClass.LOCAL
+            or preflight.probe_support is PlaceholderProbeSupport.SUPPORTED
+        )
+        if supported and declaration.alias not in bound:
+            bound[declaration.alias] = AuthorizedRoot.existing(
+                declaration.path,
+                label=f"PDF corpus source root {declaration.alias!r}",
+                root_alias=declaration.alias,
+                storage_class=declaration.storage_class,
+                placeholder_probe=declaration.placeholder_probe,
+            )
+
+
+def _require_bound_disjoint(
+    sources: dict[str, AuthorizedRoot],
+    staging: AuthorizedRoot,
+    output: AuthorizedRoot,
+) -> None:
+    values = tuple(
+        (alias, _lexical_path_parts(root.path))
+        for alias, root in sorted(sources.items())
+    ) + (
+        ("staging", _lexical_path_parts(staging.path)),
+        ("output", _lexical_path_parts(output.path)),
+    )
+    _reject_path_overlaps(values)
+
+
+def _reject_path_overlaps(
+    values: tuple[tuple[str, tuple[str, ...]], ...],
+) -> None:
     for index, (left_name, left) in enumerate(values):
         for right_name, right in values[index + 1 :]:
-            if (
-                left == right
-                or left.is_relative_to(right)
-                or right.is_relative_to(left)
-            ):
+            shorter = min(len(left), len(right))
+            if left[:shorter] == right[:shorter]:
                 raise PdfCorpusRunError(
                     f"runtime roots overlap or nest: {left_name!r}, {right_name!r}"
                 )
+
+
+def _lexical_path_parts(path: Path) -> tuple[str, ...]:
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    return tuple(part.casefold() for part in absolute.parts)
 
 
 def _canonical(value: object) -> str:

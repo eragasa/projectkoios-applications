@@ -24,6 +24,7 @@ def compose_pdf_corpus_ingestion_plan(
     cursor: int = 0,
     tranche_size: int = MAX_TRANCHE_ITEMS,
     maximum_file_bytes: int,
+    maximum_pdf_pages: int,
     low_text_threshold: int,
     multimodal_policy: PdfCorpusMultimodalPolicy,
 ) -> PdfCorpusIngestionPlan:
@@ -84,6 +85,7 @@ def compose_pdf_corpus_ingestion_plan(
         cursor=cursor,
         tranche_size=tranche_size,
         maximum_file_bytes=maximum_file_bytes,
+        maximum_pdf_pages=maximum_pdf_pages,
         low_text_threshold=low_text_threshold,
         multimodal_policy=multimodal_policy,
         items=tuple(items),

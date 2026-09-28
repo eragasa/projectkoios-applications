@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from projectkoios.applications.pdf_corpus_ingestion import (
     MAX_APPLICATION_PDF_BYTES,
+    MAX_APPLICATION_PDF_PAGES,
     PdfCorpusIngestionPlan,
     PdfCorpusItemDisposition,
     PdfCorpusMultimodalPolicy,
@@ -49,6 +51,7 @@ def _compose(
         cursor=cursor,
         tranche_size=tranche_size,
         maximum_file_bytes=MAX_APPLICATION_PDF_BYTES,
+        maximum_pdf_pages=100,
         low_text_threshold=40,
         multimodal_policy=policy,
     )
@@ -62,6 +65,7 @@ def test_empty_plan_is_canonical_and_contains_no_absolute_root(
     assert plan.items == ()
     assert plan.selected_items == ()
     assert plan.next_cursor is None
+    assert plan.maximum_pdf_pages == 100
     assert str(tmp_path) not in plan.to_json()
     assert PdfCorpusIngestionPlan.from_json(plan.to_json()) == plan
 
@@ -126,6 +130,15 @@ def test_tranche_retains_before_and_after_cursor(
         == 1
     )
     assert plan.next_cursor == 3
+
+
+def test_pdf_page_bound_is_plan_owned_and_bounded(tmp_path: Path) -> None:
+    plan = _compose(_discover(tmp_path))
+
+    with pytest.raises(PdfCorpusPlanError, match="maximum_pdf_pages"):
+        replace(plan, maximum_pdf_pages=MAX_APPLICATION_PDF_PAGES + 1)
+    with pytest.raises(PdfCorpusPlanError, match="output-file ceiling"):
+        replace(plan, maximum_pdf_pages=10)
 
 
 def test_noncanonical_json_is_rejected(tmp_path: Path) -> None:

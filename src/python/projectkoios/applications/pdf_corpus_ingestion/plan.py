@@ -18,16 +18,18 @@ from projectkoios.references import (
 from .multimodal import PdfCorpusMultimodalPolicy
 
 PLAN_CONTRACT_ID = "projectkoios.applications.pdf-corpus-ingestion-plan"
-PLAN_CONTRACT_VERSION = "0.1.0"
-PLAN_SCHEMA_VERSION = 1
+PLAN_CONTRACT_VERSION = "0.2.0"
+PLAN_SCHEMA_VERSION = 2
 PLAN_PRODUCER = "projectkoios-applications==0.1.0.dev0"
 REFERENCES_COMPONENT = "projectkoios-references==0.0.0"
-REFERENCES_SOURCE_COMMIT = "cb5a1fbcaf6bd898aaff7c7505b496b75d8123d6"
-REFERENCES_SOURCE_TREE = "5cca1e7d072a35ea496686855e1badf1e5474103"
+REFERENCES_SOURCE_COMMIT = "b7581cb5f8a619883ecd73ed1d9354b85e5f57fd"
+REFERENCES_SOURCE_TREE = "41c0165e2d4cb73ca41e2bb2acace1b77b7544d9"
 INGESTION_COMPONENT = "projectkoios-ingestion==0.0.0"
-INGESTION_SOURCE_COMMIT = "3a697104de112eed62a9ee28c2f94d91d347c9eb"
-INGESTION_SOURCE_TREE = "61f160d466ac02aa8f6f6f663bb948da0ae5d7ce"
+INGESTION_SOURCE_COMMIT = "024162ca65f4552c274b29e30462888d4379f2fc"
+INGESTION_SOURCE_TREE = "f093adbc318302fe02854708339df18fd1dcb263"
 MAX_TRANCHE_ITEMS = 256
+MAX_APPLICATION_PDF_PAGES = 9_000
+MAX_OUTPUT_ARTIFACT_FILES = 10_000
 MAX_DISCOVERY_PLAN_BYTES = 16_777_216
 MAX_APPLICATION_PLAN_BYTES = 20_971_520
 MAX_APPLICATION_PDF_BYTES = 50_000_000
@@ -123,6 +125,7 @@ class PdfCorpusIngestionPlan:
     tranche_size: int
     next_cursor: int | None
     maximum_file_bytes: int
+    maximum_pdf_pages: int
     low_text_threshold: int
     multimodal_policy: PdfCorpusMultimodalPolicy
     items: tuple[PdfCorpusPlanItem, ...]
@@ -185,6 +188,11 @@ class PdfCorpusIngestionPlan:
             raise PdfCorpusPlanError(
                 "maximum_file_bytes exceeds the discovery contract ceiling"
             )
+        if (
+            type(self.maximum_pdf_pages) is not int
+            or not 1 <= self.maximum_pdf_pages <= MAX_APPLICATION_PDF_PAGES
+        ):
+            raise PdfCorpusPlanError("maximum_pdf_pages exceeds the application bound")
         if type(self.low_text_threshold) is not int or self.low_text_threshold < 0:
             raise PdfCorpusPlanError("low_text_threshold must be nonnegative")
         if (
@@ -194,6 +202,16 @@ class PdfCorpusIngestionPlan:
         ):
             raise PdfCorpusPlanError(
                 "multimodal selection threshold must match raw extraction"
+            )
+        if (
+            self.multimodal_policy.maximum_pages_per_document > self.maximum_pdf_pages
+            or self.maximum_pdf_pages
+            + 3 * self.multimodal_policy.maximum_pages_per_document
+            + 2
+            > MAX_OUTPUT_ARTIFACT_FILES
+        ):
+            raise PdfCorpusPlanError(
+                "PDF and multimodal page bounds exceed the output-file ceiling"
             )
         if tuple(sorted(self.items, key=lambda item: item.sha256)) != self.items:
             raise PdfCorpusPlanError("items must be sorted by content identity")
@@ -231,6 +249,7 @@ class PdfCorpusIngestionPlan:
         cursor: int,
         tranche_size: int,
         maximum_file_bytes: int,
+        maximum_pdf_pages: int,
         low_text_threshold: int,
         multimodal_policy: PdfCorpusMultimodalPolicy,
         items: tuple[PdfCorpusPlanItem, ...],
@@ -256,6 +275,7 @@ class PdfCorpusIngestionPlan:
             if cursor + tranche_size < len(items)
             else None,
             "maximum_file_bytes": maximum_file_bytes,
+            "maximum_pdf_pages": maximum_pdf_pages,
             "low_text_threshold": low_text_threshold,
             "multimodal_policy": multimodal_policy,
             "items": items,
@@ -282,6 +302,7 @@ class PdfCorpusIngestionPlan:
                 "tranche_size": self.tranche_size,
                 "next_cursor": self.next_cursor,
                 "maximum_file_bytes": self.maximum_file_bytes,
+                "maximum_pdf_pages": self.maximum_pdf_pages,
                 "low_text_threshold": self.low_text_threshold,
                 "multimodal_policy": self.multimodal_policy,
                 "items": self.items,
@@ -318,6 +339,7 @@ class PdfCorpusIngestionPlan:
             "tranche_size",
             "next_cursor",
             "maximum_file_bytes",
+            "maximum_pdf_pages",
             "low_text_threshold",
             "multimodal_policy",
             "items",

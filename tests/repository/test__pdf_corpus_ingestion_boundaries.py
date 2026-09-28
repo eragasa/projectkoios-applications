@@ -39,6 +39,7 @@ def test_capability_has_no_acceptance_private_cli_or_process_imports() -> None:
         "pytesseract",
         "projectkoios.references.assets",
         "projectkoios.references.provided_intake",
+        "projectkoios.ingestion.cli",
     }
     forbidden_names = {
         "CanonicalAssetAuthorization",
@@ -70,7 +71,9 @@ def test_runner_uses_bound_filesystem_primitives() -> None:
     assert "staged_path.read_bytes(" not in text
     assert "destination.mkdir(" not in text
     assert "destination.open(" not in text
-    assert "ingest_pdf_artifacts(" not in text
+    assert "ingest_pdf_artifacts" not in text
+    assert "extract_pdf_bytes_artifacts" in text
+    assert "rename_child" not in text
     assert "subprocess" not in text
 
 

@@ -16,6 +16,7 @@ from .composition import compose_pdf_corpus_ingestion_plan
 from .multimodal import PdfCorpusMultimodalPolicy
 from .plan import (
     MAX_APPLICATION_PDF_BYTES,
+    MAX_APPLICATION_PDF_PAGES,
     MAX_APPLICATION_PLAN_BYTES,
     MAX_TRANCHE_ITEMS,
     PdfCorpusIngestionPlan,
@@ -39,6 +40,11 @@ def _parser() -> argparse.ArgumentParser:
         "--maximum-file-bytes",
         type=int,
         default=MAX_APPLICATION_PDF_BYTES,
+    )
+    plan.add_argument(
+        "--maximum-pdf-pages",
+        type=int,
+        default=MAX_APPLICATION_PDF_PAGES,
     )
     plan.add_argument("--low-text-threshold", type=int, default=40)
     plan.add_argument("--maximum-pages-per-document", type=int, default=16)
@@ -104,6 +110,7 @@ def _plan(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         cursor=args.cursor,
         tranche_size=args.tranche_size,
         maximum_file_bytes=args.maximum_file_bytes,
+        maximum_pdf_pages=args.maximum_pdf_pages,
         low_text_threshold=args.low_text_threshold,
         multimodal_policy=policy,
     )

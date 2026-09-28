@@ -14,8 +14,10 @@ placeholder preflight for a nested File Provider root. Discovery plans contain
 aliases and relative paths, never absolute root paths. An application
 plan embeds the canonical discovery plan, groups identical SHA-256 content while
 retaining every observed location, and selects at most 256 unique contents from
-an explicit cursor. Earlier and later contents remain recorded as deferred.
-Skipped discovery observations make coverage incomplete and are never treated as
+an explicit cursor. The plan also binds an explicit PDF page ceiling compatible
+with the owner extraction bound and the application's 10,000-file output
+ceiling. Earlier and later contents remain recorded as deferred. Skipped
+discovery observations make coverage incomplete and are never treated as
 absence. On non-Darwin platforms, a declared `cloud-backed` root is passed to
 the references contract without a production probe: references emits typed
 `unsupported-platform` root/skip evidence before touching the path or bytes.
@@ -25,12 +27,24 @@ the references contract without a production probe: references emits typed
 re-probes every selected source, checks exact size, SHA-256 and PDF header, and
 inspects all staging and output targets. Cloud placeholders, symlinks,
 non-regular files, drift, ambiguous outputs, and unsupported cloud platforms
-fail closed. Only hash-locked bytes copied with the references safe-copy API to
-an explicit private local staging root reach ingestion. Raw extraction is
-deterministic and uses no network, external process, OCR, or model.
+fail closed. Runtime disjointness first uses lexical absolute normalization for
+all declarations, then owner-binds local and supported cloud roots and compares
+their concrete paths against staging, output, and one another. It never resolves
+or stats an unsupported cloud root. Only hash-locked bytes copied with
+the references safe-copy API to an explicit private local staging root reach
+the ingestion-owned pure byte API. That API performs no writes; the application
+publishes each immutable owner artifact payload through `AuthorizedRoot`.
+Extracted semantics and unresolved-page selection are deterministic and use no
+network, external process, OCR, or model. Owner raw evidence records runtime
+timestamps, however, so fresh raw artifact bytes and manifest identities are
+not claimed reproducible across separate runs.
 
-Each unique content has one atomically published output directory and canonical
-manifest. Replay verifies the strict application manifest, bounded canonical
+Each unique content begins with an atomically exclusive final-directory create.
+Artifacts are written there, and the canonical completion manifest is
+atomically written last. A failure leaves a terminal partial final directory
+that later preflight rejects; the application does not claim atomic directory
+publication. Replay of one completed publication verifies the strict
+application manifest, bounded canonical
 page/status/path/identity summaries, and exact artifact path, size, and SHA-256
 inventory; it never reruns Ollama. It does not claim to
 semantically reconstruct ingestion-owned raw, renderer, or Ollama JSON because
@@ -75,8 +89,8 @@ separate references-owned workflow.
 The capability extra uses the factual current local candidate versions
 `projectkoios-references==0.0.0` and `projectkoios-ingestion[pdf]==0.0.0`.
 Development provenance is pinned to references commit/tree
-`cb5a1fbcaf6bd898aaff7c7505b496b75d8123d6` /
-`5cca1e7d072a35ea496686855e1badf1e5474103` and ingestion commit/tree
-`3a697104de112eed62a9ee28c2f94d91d347c9eb` /
-`61f160d466ac02aa8f6f6f663bb948da0ae5d7ce`. These are local candidate
+`b7581cb5f8a619883ecd73ed1d9354b85e5f57fd` /
+`41c0165e2d4cb73ca41e2bb2acace1b77b7544d9` and ingestion commit/tree
+`024162ca65f4552c274b29e30462888d4379f2fc` /
+`f093adbc318302fe02854708339df18fd1dcb263`. These are local candidate
 identities, not publication or version-compatibility promises.

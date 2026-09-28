@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 from typing import cast
 
@@ -52,6 +53,7 @@ def _plan(
     source_root: Path,
     *,
     threshold: int = 40,
+    maximum_pdf_pages: int = 10,
     maximum_pages_per_document: int = 4,
 ) -> PdfCorpusIngestionPlan:
     discovery = discover_pdf_corpus(
@@ -74,6 +76,7 @@ def _plan(
     return compose_pdf_corpus_ingestion_plan(
         discovery,
         maximum_file_bytes=MAX_APPLICATION_PDF_BYTES,
+        maximum_pdf_pages=maximum_pdf_pages,
         low_text_threshold=threshold,
         multimodal_policy=policy,
     )
@@ -420,6 +423,137 @@ def test_page_bound_is_terminal_incomplete_and_retains_deferral(
     assert manifest["multimodal"]["deferred_document_page_indices"] == [1]
 
 
+def test_pdf_page_limit_leaves_terminal_partial_final_directory(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "two-pages.pdf").write_bytes(_pdf(pages=2))
+    staging, output = _runtime_roots(tmp_path)
+    plan = _plan(
+        source,
+        maximum_pdf_pages=1,
+        maximum_pages_per_document=1,
+    )
+    target = output / plan.selected_items[0].output_directory
+
+    with pytest.raises(PdfCorpusRunError, match="tranche failed"):
+        run_pdf_corpus_ingestion(
+            plan,
+            roots=_roots(source),
+            staging_root_path=staging,
+            output_root_path=output,
+            apply=True,
+        )
+
+    assert target.is_dir()
+    assert tuple(target.iterdir()) == ()
+    with pytest.raises(PdfCorpusRunError, match="complete manifest"):
+        run_pdf_corpus_ingestion(
+            plan,
+            roots=_roots(source),
+            staging_root_path=staging,
+            output_root_path=output,
+            apply=False,
+        )
+
+
+def test_unsupported_cloud_run_never_resolves_or_stats_source_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cloud = tmp_path / "must-not-be-touched"
+    staging, output = _runtime_roots(tmp_path)
+    original_resolve = Path.resolve
+    original_stat = os.stat
+
+    def guarded_resolve(
+        path: Path,
+        strict: bool = False,
+    ) -> Path:
+        if path == cloud:
+            raise AssertionError("unsupported cloud root was resolved")
+        return original_resolve(path, strict=strict)
+
+    def guarded_stat(
+        path: os.PathLike[str] | str | int,
+        *,
+        dir_fd: int | None = None,
+        follow_symlinks: bool = True,
+    ) -> os.stat_result:
+        if not isinstance(path, int) and os.fspath(path) == os.fspath(cloud):
+            raise AssertionError("unsupported cloud root was stated")
+        return original_stat(
+            path,
+            dir_fd=dir_fd,
+            follow_symlinks=follow_symlinks,
+        )
+
+    monkeypatch.setattr(Path, "resolve", guarded_resolve)
+    monkeypatch.setattr(
+        "projectkoios.references.pdf_corpus.os.stat",
+        guarded_stat,
+    )
+    roots = (PdfCorpusRoot("cloud", cloud, RootStorageClass.CLOUD_BACKED),)
+    discovery = discover_pdf_corpus(roots)
+    policy = PdfCorpusMultimodalPolicy.create(
+        native_text_character_threshold=40,
+        maximum_pages_per_document=4,
+        maximum_pages_per_tranche=8,
+        request_max_selections=2,
+        expected_ollama_version=_VERSION,
+        model_name=_MODEL,
+        expected_model_digest=_DIGEST,
+    )
+    plan = compose_pdf_corpus_ingestion_plan(
+        discovery,
+        maximum_file_bytes=MAX_APPLICATION_PDF_BYTES,
+        maximum_pdf_pages=10,
+        low_text_threshold=40,
+        multimodal_policy=policy,
+    )
+
+    report = run_pdf_corpus_ingestion(
+        plan,
+        roots=roots,
+        staging_root_path=staging,
+        output_root_path=output,
+        apply=False,
+    )
+
+    assert report.corpus_coverage_status == "incomplete"
+    assert report.items == ()
+    with pytest.raises(FileNotFoundError):
+        original_stat(cloud)
+
+
+def test_local_parent_symlink_overlap_fails_before_mutation(tmp_path: Path) -> None:
+    real_parent = tmp_path / "real"
+    real_parent.mkdir()
+    output = real_parent / "output"
+    output.mkdir(mode=0o700)
+    source_pdf = output / "source.pdf"
+    source_pdf.write_bytes(_pdf())
+    alias_parent = tmp_path / "alias"
+    alias_parent.symlink_to(real_parent, target_is_directory=True)
+    aliased_source = alias_parent / "output"
+    staging = tmp_path / "staging"
+    staging.mkdir(mode=0o700)
+    plan = _plan(aliased_source)
+
+    with pytest.raises(PdfCorpusRunError, match="overlap or nest"):
+        run_pdf_corpus_ingestion(
+            plan,
+            roots=_roots(aliased_source),
+            staging_root_path=staging,
+            output_root_path=output,
+            apply=True,
+        )
+
+    assert tuple(staging.iterdir()) == ()
+    assert tuple(output.iterdir()) == (source_pdf,)
+
+
 def test_staging_symlink_fails_before_output_mutation(tmp_path: Path) -> None:
     source = tmp_path / "source"
     source.mkdir()
@@ -539,6 +673,7 @@ def test_placeholder_rebind_fails_before_staging_or_output(
     plan = compose_pdf_corpus_ingestion_plan(
         discovery,
         maximum_file_bytes=MAX_APPLICATION_PDF_BYTES,
+        maximum_pdf_pages=10,
         low_text_threshold=40,
         multimodal_policy=policy,
     )

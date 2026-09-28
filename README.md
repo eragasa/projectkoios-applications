@@ -45,11 +45,13 @@ calculator execution.
 Install the capability dependencies with `projectkoios-applications[pdf-corpus]`.
 `koios-pdf-corpus-ingestion plan` scans only repeated explicit
 `local:ALIAS=/absolute/path` or `cloud-backed:ALIAS=/absolute/path` roots and
-prints its canonical plan unless `--apply --plan-output ...` is given. The
-separate `run` command rebinds the same roots plus explicit private staging and
-local output roots; it likewise performs only preflight unless `--apply` is
-given. Local Ollama identity and endpoint arguments never imply a hosted or
-fallback provider.
+prints its canonical plan unless `--apply --plan-output ...` is given. The plan
+records `--maximum-pdf-pages` and bounded multimodal page policy. The separate
+`run` command rebinds the same roots plus explicit private staging and local
+output roots; it likewise performs only preflight unless `--apply` is given.
+Hash-locked staged bytes use ingestion's non-writing byte API, and returned
+artifacts are written only through the authorized output root. Local Ollama
+identity and endpoint arguments never imply a hosted or fallback provider.
 
 ## Development
 

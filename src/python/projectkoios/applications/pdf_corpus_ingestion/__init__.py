@@ -4,6 +4,7 @@ from .composition import compose_pdf_corpus_ingestion_plan
 from .multimodal import PdfCorpusMultimodalPolicy
 from .plan import (
     MAX_APPLICATION_PDF_BYTES,
+    MAX_APPLICATION_PDF_PAGES,
     MAX_TRANCHE_ITEMS,
     PdfCorpusIngestionPlan,
     PdfCorpusItemDisposition,
@@ -14,6 +15,7 @@ from .plan import (
 
 __all__ = [
     "MAX_APPLICATION_PDF_BYTES",
+    "MAX_APPLICATION_PDF_PAGES",
     "MAX_TRANCHE_ITEMS",
     "PdfCorpusIngestionPlan",
     "PdfCorpusItemDisposition",
