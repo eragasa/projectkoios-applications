@@ -88,7 +88,7 @@ public deterministic equation detector, retains its complete canonical result,
 and externalizes each exact rendered candidate image with source and processor
 links. The application index is navigational evidence; candidates remain
 `proposed` or `ambiguous`. Assisted, human, and transcript stages are explicitly
-`not-started` and have no artifact paths in this package.
+`not-started` in the initial deterministic publication.
 
 `publish_deterministic_document_package` exclusively creates the final
 `<document-key>` directory through `AuthorizedRoot`, writes the completion
@@ -97,6 +97,52 @@ manifest last, and verifies every path, size, and SHA-256. Exact replay reports
 The current corpus runner is not yet switched from its reviewed
 content-addressed layout; wiring document keys, corpus completion, and the CLI
 is a later application-composition slice.
+
+## Append-only equation review
+
+The narrow application-owned review seam appends to one already-published
+candidate region without changing deterministic evidence:
+
+```text
+content/equations/regions/<candidate-digest>/
+├── assisted/attempt-0001/
+│   ├── proposal.txt
+│   └── manifest.json
+└── human/revision-0001/
+    ├── decision.json
+    └── manifest.json
+```
+
+`publish_assisted_equation_attempt` supports only immutable attempt 0001. The
+proposal SHA-256 covers the exact UTF-8 bytes in `proposal.txt`; its status is
+always `automated_unreviewed`. Exact replay is unchanged, while partial or
+different existing output fails closed. The attempt directory is created
+exclusively, proposal bytes are atomically written without replacement, and its
+completion manifest is atomically written last.
+
+`append_human_equation_revision` requires an optimistic
+`expected_previous_revision`, scans a bounded contiguous revision inventory,
+and exclusively creates only the next revision. A lost create race, gap,
+partial revision, stale expected revision, or different idempotency replay is
+rejected. Each human decision binds the document and candidate identities,
+source PDF SHA-256, deterministic candidate-manifest SHA-256, region-image
+SHA-256, and—when referenced—the exact attempt-0001 proposal SHA-256. Acceptance
+requires that proposal binding and is represented only by the separate human
+record; it never mutates or upgrades the assisted status. Disposition and note
+are preserved exactly. Stable revision identity includes a caller-supplied,
+timezone-aware UTC review time; publication runtime is not injected into that
+identity.
+
+Before mutation, both operations revalidate the immutable document, source PDF,
+candidate source manifest, candidate evidence, and region image through the
+provided local `AuthorizedRoot`. The public dataclasses, publication/append
+functions, and `load_latest_human_equation_revision` projection form the
+API-consumable seam. The latest projection revalidates both source evidence and
+any referenced assisted proposal before returning a human record. Root
+selection, API routing/authentication, and request-to-contract adaptation remain
+outside it. This slice does not access a
+corpus, run PDF extraction, invoke a model or network, or authorize training-data
+publication.
 
 ## Multimodal resolution stop boundary
 

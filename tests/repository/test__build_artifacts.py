@@ -23,7 +23,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _EPOCH = "1758931200"
 _SDIST_INVENTORY = _ROOT / "tests/fixtures/artifacts/sdist-inventory.txt"
 _SDIST_INVENTORY_SHA256 = (
-    "5e4d45e4b429b2d3b4cb70891e6b2878d18b6ec7336a1d7b9f9f23865f866cb6"
+    "ff36caf32f5d9ee1b0abbf0a97c584ce3e8f0a0ed21462f2c611ecdb13c86579"
 )
 _WHEEL_INVENTORY = (
     "projectkoios/applications/__init__.py",
@@ -32,6 +32,7 @@ _WHEEL_INVENTORY = (
     "projectkoios/applications/pdf_corpus_ingestion/cli.py",
     "projectkoios/applications/pdf_corpus_ingestion/composition.py",
     "projectkoios/applications/pdf_corpus_ingestion/document_package.py",
+    "projectkoios/applications/pdf_corpus_ingestion/equation_review.py",
     "projectkoios/applications/pdf_corpus_ingestion/multimodal.py",
     "projectkoios/applications/pdf_corpus_ingestion/plan.py",
     "projectkoios/applications/pdf_corpus_ingestion/roots.py",
@@ -199,13 +200,17 @@ with tempfile.TemporaryDirectory() as directory:
         {ingestion!r},
         {core!r},
     ]
-    from projectkoios.applications.pdf_corpus_ingestion import PdfCorpusIngestionPlan
+    from projectkoios.applications.pdf_corpus_ingestion import (
+        EquationReviewEvidenceBinding,
+        PdfCorpusIngestionPlan,
+    )
     from projectkoios.applications.pw_dft_scf.replay import PwDftScfConvergenceReplayer
     from projectkoios.applications.pw_dft_relaxation.composition import (
         PwDftRelaxationComposer,
     )
     assert (
-        PdfCorpusIngestionPlan
+        EquationReviewEvidenceBinding
+        and PdfCorpusIngestionPlan
         and PwDftScfConvergenceReplayer
         and PwDftRelaxationComposer
     )

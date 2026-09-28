@@ -226,6 +226,7 @@ projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_co
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/cli.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/composition.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/document_package.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/equation_review.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/multimodal.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/plan.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/roots.py
@@ -289,6 +290,7 @@ projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__cli.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__document_package.py
+projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__equation_review.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__plan.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__roots.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__runner.py
