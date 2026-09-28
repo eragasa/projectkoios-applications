@@ -12,3 +12,9 @@ composition and is not copied into this distribution.
 Provider integrations are supplied by `projectkoios-simulations`; no VASP,
 Quantum ESPRESSO, pseudopotential, executable, or raw calculator corpus is
 included in this package.
+
+The optional `pdf-corpus` capability composes separately distributed
+`projectkoios-references` and `projectkoios-ingestion`. Its PDF extra uses
+PyMuPDF as a separate dependency under PyMuPDF's applicable AGPL/commercial
+license terms. No PyMuPDF, Ollama, model, PDF corpus, or model output is vendored
+in this distribution.

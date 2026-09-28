@@ -22,7 +22,14 @@ dependencies = [
 Repository = "https://github.com/eragasa/projectkoios-applications"
 Documentation = "https://github.com/eragasa/projectkoios-applications/tree/main/docs"
 
+[project.scripts]
+koios-pdf-corpus-ingestion = "projectkoios.applications.pdf_corpus_ingestion.cli:main"
+
 [project.optional-dependencies]
+pdf-corpus = [
+    "projectkoios-ingestion[pdf]==0.0.0",
+    "projectkoios-references==0.0.0",
+]
 examples = [
     "numpy>=2.3,<3",
     "physkit>=0.1,<0.2",

@@ -8,12 +8,14 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 _PACKAGE_ROOT = _REPOSITORY_ROOT / "src/python/projectkoios/applications"
 _ALLOWED_PROJECT_PREFIXES = (
     "projectkoios.applications",
+    "projectkoios.ingestion",
+    "projectkoios.references",
     "projectkoios.simulations",
 )
 
 
 class DependencyBoundaryTest(unittest.TestCase):
-    def test_package_imports_only_application_and_neutral_simulation_contracts(
+    def test_package_imports_only_owned_component_contracts(
         self,
     ) -> None:
         violations: list[str] = []

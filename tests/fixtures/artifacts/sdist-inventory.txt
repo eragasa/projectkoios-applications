@@ -15,6 +15,8 @@ projectkoios_applications-0.1.0.dev0/docs/architecture/index.md
 projectkoios_applications-0.1.0.dev0/docs/architecture/projectkoios
 projectkoios_applications-0.1.0.dev0/docs/architecture/projectkoios/applications
 projectkoios_applications-0.1.0.dev0/docs/architecture/projectkoios/applications/index.md
+projectkoios_applications-0.1.0.dev0/docs/architecture/projectkoios/applications/pdf_corpus_ingestion
+projectkoios_applications-0.1.0.dev0/docs/architecture/projectkoios/applications/pdf_corpus_ingestion/index.md
 projectkoios_applications-0.1.0.dev0/docs/architecture/projectkoios/applications/pw_dft_relaxation
 projectkoios_applications-0.1.0.dev0/docs/architecture/projectkoios/applications/pw_dft_relaxation/composition
 projectkoios_applications-0.1.0.dev0/docs/architecture/projectkoios/applications/pw_dft_relaxation/composition/index.md
@@ -219,6 +221,14 @@ projectkoios_applications-0.1.0.dev0/src/python
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/__init__.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/__init__.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/cli.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/composition.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/multimodal.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/plan.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/roots.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/runner.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pw_dft_relaxation
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pw_dft_relaxation/__init__.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pw_dft_relaxation/composition.py
@@ -249,6 +259,7 @@ projectkoios_applications-0.1.0.dev0/src/python/projectkoios_applications.egg-in
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios_applications.egg-info/PKG-INFO
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios_applications.egg-info/SOURCES.txt
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios_applications.egg-info/dependency_links.txt
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios_applications.egg-info/entry_points.txt
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios_applications.egg-info/requires.txt
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios_applications.egg-info/top_level.txt
 projectkoios_applications-0.1.0.dev0/tests
@@ -274,6 +285,11 @@ projectkoios_applications-0.1.0.dev0/tests/fixtures/transfer
 projectkoios_applications-0.1.0.dev0/tests/fixtures/transfer/expected-transfer-targets.json
 projectkoios_applications-0.1.0.dev0/tests/projectkoios
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications
+projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion
+projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__cli.py
+projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__plan.py
+projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__roots.py
+projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__runner.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pw_dft_relaxation
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pw_dft_relaxation/composition
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pw_dft_relaxation/composition/test__PwDftRelaxationComposer.py
@@ -303,6 +319,7 @@ projectkoios_applications-0.1.0.dev0/tests/repository
 projectkoios_applications-0.1.0.dev0/tests/repository/test__build_artifacts.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__calculator_authority.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__dependency_boundaries.py
+projectkoios_applications-0.1.0.dev0/tests/repository/test__pdf_corpus_ingestion_boundaries.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__transfer_inventory.py
 projectkoios_applications-0.1.0.dev0/tests/support
 projectkoios_applications-0.1.0.dev0/tests/support/exact_provider_graph_probe.py

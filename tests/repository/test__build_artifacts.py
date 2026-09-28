@@ -14,17 +14,27 @@ from pathlib import Path
 
 import physkit
 
+import projectkoios.chunking
+import projectkoios.ingestion
+import projectkoios.references
 import projectkoios.simulations
 
 _ROOT = Path(__file__).resolve().parents[2]
 _EPOCH = "1758931200"
 _SDIST_INVENTORY = _ROOT / "tests/fixtures/artifacts/sdist-inventory.txt"
 _SDIST_INVENTORY_SHA256 = (
-    "c2cf70fa64876dea58c3a299a41b145d21ca268d86ef4a3f65df2bf6af7cdbba"
+    "8ad327b606d79d61d6020825dc9e87071b61c4466b477310691747308b0b59d5"
 )
 _WHEEL_INVENTORY = (
     "projectkoios/applications/__init__.py",
     "projectkoios/applications/py.typed",
+    "projectkoios/applications/pdf_corpus_ingestion/__init__.py",
+    "projectkoios/applications/pdf_corpus_ingestion/cli.py",
+    "projectkoios/applications/pdf_corpus_ingestion/composition.py",
+    "projectkoios/applications/pdf_corpus_ingestion/multimodal.py",
+    "projectkoios/applications/pdf_corpus_ingestion/plan.py",
+    "projectkoios/applications/pdf_corpus_ingestion/roots.py",
+    "projectkoios/applications/pdf_corpus_ingestion/runner.py",
     "projectkoios/applications/pw_dft_relaxation/__init__.py",
     "projectkoios/applications/pw_dft_relaxation/composition.py",
     "projectkoios/applications/pw_dft_relaxation/workflow/__init__.py",
@@ -50,6 +60,7 @@ _WHEEL_INVENTORY = (
     "projectkoios_applications-0.1.0.dev0.dist-info/licenses/THIRD_PARTY_NOTICES.md",
     "projectkoios_applications-0.1.0.dev0.dist-info/METADATA",
     "projectkoios_applications-0.1.0.dev0.dist-info/WHEEL",
+    "projectkoios_applications-0.1.0.dev0.dist-info/entry_points.txt",
     "projectkoios_applications-0.1.0.dev0.dist-info/top_level.txt",
     "projectkoios_applications-0.1.0.dev0.dist-info/RECORD",
 )
@@ -172,16 +183,31 @@ class BuildArtifactTest(unittest.TestCase):
             Path(next(iter(projectkoios.simulations.__path__))).parents[1]
         )
         physkit_root = str(Path(physkit.__file__).resolve().parents[1])
+        references = str(Path(next(iter(projectkoios.references.__path__))).parents[1])
+        ingestion = str(Path(next(iter(projectkoios.ingestion.__path__))).parents[1])
+        core = str(Path(next(iter(projectkoios.chunking.__path__))).parents[1])
         script = f"""
 import sys, zipfile, tempfile
 with tempfile.TemporaryDirectory() as directory:
     zipfile.ZipFile({str(wheel)!r}).extractall(directory)
-    sys.path[:0] = [directory, {simulations!r}, {physkit_root!r}]
+    sys.path[:0] = [
+        directory,
+        {simulations!r},
+        {physkit_root!r},
+        {references!r},
+        {ingestion!r},
+        {core!r},
+    ]
+    from projectkoios.applications.pdf_corpus_ingestion import PdfCorpusIngestionPlan
     from projectkoios.applications.pw_dft_scf.replay import PwDftScfConvergenceReplayer
     from projectkoios.applications.pw_dft_relaxation.composition import (
         PwDftRelaxationComposer,
     )
-    assert PwDftScfConvergenceReplayer and PwDftRelaxationComposer
+    assert (
+        PdfCorpusIngestionPlan
+        and PwDftScfConvergenceReplayer
+        and PwDftRelaxationComposer
+    )
 """
         subprocess.run(
             [sys.executable, "-I", "-c", script],

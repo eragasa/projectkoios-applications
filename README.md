@@ -4,7 +4,9 @@ Workflow- and colored-Petri-net-enabled application composition for Project Koio
 The first capability is `projectkoios.applications.pw_dft_scf`, which composes
 calculator-neutral simulation contracts into plane-wave DFT self-consistent-field
 recipes, convergence policy, comparisons, workflow definitions, and engine-hiding
-facades.
+facades. The `projectkoios.applications.pdf_corpus_ingestion` capability composes
+bounded references-owned PDF discovery with ingestion-owned extraction and
+local-only multimodal resolution while keeping reference acceptance separate.
 
 This repository does not own calculator integrations, neutral simulation records,
 or generic workflow/CPN kernels. Those remain in `projectkoios-simulations` and
@@ -38,9 +40,22 @@ exercised through its non-authorizing handoff, and the retained 30+6 QE dataset
 is replayed from provider-normalized, provenance-bound evidence without
 calculator execution.
 
+## PDF corpus ingestion
+
+Install the capability dependencies with `projectkoios-applications[pdf-corpus]`.
+`koios-pdf-corpus-ingestion plan` scans only repeated explicit
+`local:ALIAS=/absolute/path` or `cloud-backed:ALIAS=/absolute/path` roots and
+prints its canonical plan unless `--apply --plan-output ...` is given. The
+separate `run` command rebinds the same roots plus explicit private staging and
+local output roots; it likewise performs only preflight unless `--apply` is
+given. Local Ollama identity and endpoint arguments never imply a hosted or
+fallback provider.
+
 ## Development
 
 The maintained package uses Python 3.14 and a `src/python` layout. Verification
 covers Ruff formatting and lint, strict Mypy, deterministic and adversarial
 pytest cases, source-transfer policy, and reproducible wheel/sdist construction.
-Calculator execution is excluded from verification.
+Calculator execution is excluded from verification. PDF-corpus tests use only
+explicit temporary roots and fake Ollama transport; they never scan a user
+filesystem or contact a model daemon.
