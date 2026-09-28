@@ -56,6 +56,48 @@ resolution is immutable terminal-incomplete evidence for that plan/output; retry
 requires a newly composed plan and fresh output root. It is never reported as
 full processing completion.
 
+## Document-centric deterministic package
+
+The bounded document-package candidate projects one exact source PDF, the
+owner-built raw extraction bundle, and ingestion-owned deterministic equation
+detection into a human-navigable document directory. It does not reinterpret
+owner evidence or accept any proposal:
+
+```text
+<document-key>/
+├── source/
+│   ├── document.pdf
+│   └── manifest.json
+├── ingestion/
+│   ├── extraction.json
+│   ├── pages/
+│   └── manifest.json
+├── content/equations/
+│   ├── deterministic/detection.json
+│   ├── regions/<candidate-digest>/
+│   │   ├── source/{image.png,manifest.json}
+│   │   └── deterministic/manifest.json
+│   ├── index.json
+│   └── manifest.json
+└── document-manifest.json
+```
+
+`build_deterministic_document_package` is pure and bounded. It requires source
+bytes that exactly match an existing `PdfExtractionArtifactBundle`, invokes the
+public deterministic equation detector, retains its complete canonical result,
+and externalizes each exact rendered candidate image with source and processor
+links. The application index is navigational evidence; candidates remain
+`proposed` or `ambiguous`. Assisted, human, and transcript stages are explicitly
+`not-started` and have no artifact paths in this package.
+
+`publish_deterministic_document_package` exclusively creates the final
+`<document-key>` directory through `AuthorizedRoot`, writes the completion
+manifest last, and verifies every path, size, and SHA-256. Exact replay reports
+`unchanged`. A partial or different directory fails closed and is not repaired.
+The current corpus runner is not yet switched from its reviewed
+content-addressed layout; wiring document keys, corpus completion, and the CLI
+is a later application-composition slice.
+
 ## Multimodal resolution stop boundary
 
 Native extraction evidence deterministically selects only pages that meet the
