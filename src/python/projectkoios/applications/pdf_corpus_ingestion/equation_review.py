@@ -12,24 +12,39 @@ from pathlib import PurePosixPath
 
 from projectkoios.references import AuthorizedRoot, RootStorageClass
 
-from .document_package import DOCUMENT_PACKAGE_MANIFEST
+from . import review_tree as _review_tree
+from .document_package import (
+    DOCUMENT_PACKAGE_CONTRACT_ID,
+    DOCUMENT_PACKAGE_MANIFEST,
+    DOCUMENT_PACKAGE_SCHEMA_VERSION,
+    MAX_DOCUMENT_PACKAGE_ARTIFACTS,
+    MAX_DOCUMENT_PACKAGE_BYTES,
+)
+from .review_tree import (
+    MAX_ASSISTED_PROPOSAL_CHARACTERS,
+    MAX_EQUATION_REVIEW_NOTE_CHARACTERS,
+    MAX_EQUATION_REVIEW_REVISIONS,
+    ReviewEvidenceIdentity,
+    ReviewTreeValidationError,
+    validate_review_tree,
+)
 
-EQUATION_REVIEW_CONTRACT_ID = "projectkoios.applications.pdf-corpus-equation-review"
-EQUATION_REVIEW_SCHEMA_VERSION = 1
-MAX_EQUATION_REVIEW_REVISIONS = 9_999
-MAX_EQUATION_REVIEW_NOTE_CHARACTERS = 10_000
-MAX_ASSISTED_PROPOSAL_CHARACTERS = 100_000
-_MAX_ASSISTED_PROPOSAL_BYTES = 400_000
+EQUATION_REVIEW_CONTRACT_ID = _review_tree.EQUATION_REVIEW_CONTRACT_ID
+EQUATION_REVIEW_SCHEMA_VERSION = _review_tree.EQUATION_REVIEW_SCHEMA_VERSION
 _MAX_MANIFEST_BYTES = 20_000_000
 _MAX_MANIFEST_DEPTH = 32
 _MAX_MANIFEST_ITEMS = 200_000
 _MAX_MANIFEST_STRING_BYTES = 1_100_000
-_MAX_REGION_IMAGE_BYTES = 20_000_000
 _MAX_SOURCE_BYTES = 128_000_000
-_MAX_REVIEW_FILES = 2 * MAX_EQUATION_REVIEW_REVISIONS
 _OPAQUE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,255}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
-_REVISION_DIRECTORY = re.compile(r"revision-([0-9]{4})")
+_DOCUMENT_PACKAGE_STAGES = {
+    "assisted": "not-started",
+    "equation_detection": "deterministic-complete",
+    "human_review": "not-started",
+    "ingestion": "deterministic-complete",
+    "transcript": "not-started",
+}
 
 
 class EquationReviewError(ValueError):
@@ -65,6 +80,14 @@ class EquationReviewDisposition(StrEnum):
     ACCEPT_TRANSCRIPTION = "ACCEPT_TRANSCRIPTION"
     REJECT_CANDIDATE = "REJECT_CANDIDATE"
     REVISION_REQUIRED = "REVISION_REQUIRED"
+
+
+@dataclass(frozen=True, slots=True)
+class _InventoryEntry:
+    relative_path: PurePosixPath
+    media_type: str
+    byte_size: int
+    sha256: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -345,14 +368,7 @@ def load_latest_human_equation_revision(
     )
     if not revisions:
         return None
-    latest = revisions[-1]
-    if latest.assistance_proposal_sha256 is not None:
-        _validate_assisted_proposal(
-            document_root,
-            binding,
-            latest.assistance_proposal_sha256,
-        )
-    return latest
+    return revisions[-1]
 
 
 def append_human_equation_revision(
@@ -365,19 +381,18 @@ def append_human_equation_revision(
         raise TypeError("request must be HumanEquationRevisionRequest")
     _authorized_root(document_root)
     _validate_evidence(document_root, request.binding)
-    if request.assistance_proposal_sha256 is not None:
-        _validate_assisted_proposal(
-            document_root,
-            request.binding,
-            request.assistance_proposal_sha256,
-        )
-
     human_root = _candidate_root(request.binding.candidate_id) / "human"
     revisions = _existing_revisions(
         document_root,
         human_root,
         request.binding,
     )
+    if request.assistance_proposal_sha256 is not None:
+        _validate_assisted_proposal(
+            document_root,
+            request.binding,
+            request.assistance_proposal_sha256,
+        )
     current = revisions[-1].revision if revisions else 0
     expected = request.expected_previous_revision
     if current != expected:
@@ -404,22 +419,57 @@ def append_human_equation_revision(
     revision = _human_revision(request, revision=revision_number)
     relative = human_root / f"revision-{revision_number:04d}"
     if document_root.state(relative) != "missing":
-        raise EquationReviewPublicationError(
-            "next human revision output already exists"
+        return _classify_revision_collision(
+            request,
+            revision,
+            document_root=document_root,
+            human_root=human_root,
         )
     _ensure_parents(document_root, relative)
     try:
         destination = document_root.create_directory(relative)
-    except FileExistsError as error:
-        raise EquationReviewConcurrencyError(
-            "human revision append lost an exclusive-create race"
-        ) from error
+    except FileExistsError:
+        return _classify_revision_collision(
+            request,
+            revision,
+            document_root=document_root,
+            human_root=human_root,
+        )
     artifacts = _human_artifacts(revision)
     _write_artifacts(destination, artifacts)
     _verify_exact_files(destination, artifacts)
     return HumanEquationRevisionAppendResult(
         revision,
         EquationReviewPublicationAction.CREATE,
+    )
+
+
+def _classify_revision_collision(
+    request: HumanEquationRevisionRequest,
+    attempted: HumanEquationRevision,
+    *,
+    document_root: AuthorizedRoot,
+    human_root: PurePosixPath,
+) -> HumanEquationRevisionAppendResult:
+    revisions = _existing_revisions(
+        document_root,
+        human_root,
+        request.binding,
+    )
+    if not revisions or revisions[-1].revision < attempted.revision:
+        raise EquationReviewPublicationError(
+            "concurrent human revision output is partial or malformed"
+        )
+    latest = revisions[-1]
+    if latest.revision > attempted.revision:
+        raise EquationReviewStaleRevision("human revisions advanced during append")
+    if latest == attempted:
+        return HumanEquationRevisionAppendResult(
+            latest,
+            EquationReviewPublicationAction.UNCHANGED,
+        )
+    raise EquationReviewConcurrencyError(
+        "human revision append lost to different concurrent evidence"
     )
 
 
@@ -567,47 +617,270 @@ def _validate_evidence(
     binding: EquationReviewEvidenceBinding,
 ) -> None:
     document = _read_json(root, DOCUMENT_PACKAGE_MANIFEST)
-    if (
-        document.get("document_key") != binding.document_id
-        or document.get("source_sha256") != binding.source_sha256
-        or document.get("status") != "deterministic-complete"
-    ):
-        raise EquationReviewEvidenceMismatch(
-            "document identity or source evidence is stale"
-        )
-    source = root.observe_file(
-        PurePosixPath("source/document.pdf"),
-        max_bytes=_MAX_SOURCE_BYTES,
-    )
-    if source.sha256 != binding.source_sha256:
-        raise EquationReviewEvidenceMismatch("source PDF bytes are stale")
+    inventory = _document_package_inventory(document, binding)
+    _verify_inventoried_files(root, inventory)
+
+    source_path = PurePosixPath("source/document.pdf")
+    source_manifest_path = PurePosixPath("source/manifest.json")
+    index_path = PurePosixPath("content/equations/index.json")
     candidate_root = _candidate_root(binding.candidate_id)
-    source_manifest = _read_json(root, candidate_root / "source/manifest.json")
+    image_path = candidate_root / "source/image.png"
+    candidate_source_path = candidate_root / "source/manifest.json"
     deterministic_path = candidate_root / "deterministic/manifest.json"
+
+    _require_inventory_entry(
+        inventory,
+        source_path,
+        media_type="application/pdf",
+        sha256=binding.source_sha256,
+    )
+    _require_inventory_entry(
+        inventory,
+        source_manifest_path,
+        media_type="application/json",
+    )
+    _require_inventory_entry(
+        inventory,
+        index_path,
+        media_type="application/json",
+    )
+    _require_inventory_entry(
+        inventory,
+        image_path,
+        media_type="image/png",
+        sha256=binding.region_image_sha256,
+    )
+    _require_inventory_entry(
+        inventory,
+        candidate_source_path,
+        media_type="application/json",
+    )
+    _require_inventory_entry(
+        inventory,
+        deterministic_path,
+        media_type="application/json",
+        sha256=binding.candidate_evidence_sha256,
+    )
+
+    source_manifest = _read_json(root, source_manifest_path)
+    candidate_source = _read_json(root, candidate_source_path)
     deterministic = _read_json(root, deterministic_path)
+    index = _read_json(root, index_path)
+    candidates = index.get("candidates")
+    if not isinstance(candidates, list):
+        raise EquationReviewEvidenceMismatch("equation candidate index is malformed")
+    indexed = [
+        item
+        for item in candidates
+        if isinstance(item, dict) and item.get("candidate_id") == binding.candidate_id
+    ]
     candidate = deterministic.get("candidate")
+    rendered = candidate.get("rendered_region") if isinstance(candidate, dict) else None
     if (
-        source_manifest.get("candidate_id") != binding.candidate_id
+        len(indexed) != 1
         or source_manifest.get("document_key") != binding.document_id
+        or source_manifest.get("source_path") != source_path.as_posix()
         or source_manifest.get("source_sha256") != binding.source_sha256
-        or source_manifest.get("image_sha256") != binding.region_image_sha256
+        or source_manifest.get("source_byte_size") != inventory[source_path].byte_size
+        or source_manifest.get("status") != "immutable-source"
+        or candidate_source.get("candidate_id") != binding.candidate_id
+        or candidate_source.get("document_key") != binding.document_id
+        or candidate_source.get("source_sha256") != binding.source_sha256
+        or candidate_source.get("image_path") != image_path.as_posix()
+        or candidate_source.get("image_sha256") != binding.region_image_sha256
+        or candidate_source.get("status") != "immutable-source-evidence"
         or not isinstance(candidate, dict)
         or candidate.get("candidate_id") != binding.candidate_id
+        or not isinstance(rendered, dict)
+        or rendered.get("content_sha256") != binding.region_image_sha256
+        or deterministic.get("document_key") != binding.document_id
+        or deterministic.get("detection_result_id")
+        != document.get("equation_detection_result_id")
+        or deterministic.get("status") != "deterministic-proposal"
+        or index.get("document_key") != binding.document_id
+        or index.get("source_sha256") != binding.source_sha256
+        or index.get("detection_result_id")
+        != document.get("equation_detection_result_id")
+        or index.get("status") != "deterministic-unreviewed"
     ):
-        raise EquationReviewEvidenceMismatch("candidate source evidence is stale")
-    image = root.observe_file(
-        candidate_root / "source/image.png",
-        max_bytes=_MAX_REGION_IMAGE_BYTES,
-    )
-    evidence = root.observe_file(
-        deterministic_path,
-        max_bytes=_MAX_MANIFEST_BYTES,
-    )
+        raise EquationReviewEvidenceMismatch("document or candidate evidence is stale")
+    index_record = indexed[0]
     if (
-        image.sha256 != binding.region_image_sha256
-        or evidence.sha256 != binding.candidate_evidence_sha256
+        set(index_record)
+        != {
+            "candidate_id",
+            "deterministic_manifest",
+            "evidence_status",
+            "image_path",
+            "image_sha256",
+            "kind",
+            "source_manifest",
+        }
+        or index_record.get("deterministic_manifest") != deterministic_path.as_posix()
+        or index_record.get("image_path") != image_path.as_posix()
+        or index_record.get("image_sha256") != binding.region_image_sha256
+        or index_record.get("source_manifest") != candidate_source_path.as_posix()
     ):
-        raise EquationReviewEvidenceMismatch("candidate evidence bytes are stale")
+        raise EquationReviewEvidenceMismatch(
+            "candidate is not exactly listed by the deterministic package"
+        )
+
+
+def _document_package_inventory(
+    document: dict[str, object],
+    binding: EquationReviewEvidenceBinding,
+) -> dict[PurePosixPath, _InventoryEntry]:
+    expected_keys = {
+        "artifact_files",
+        "contract_id",
+        "document_key",
+        "equation_detection_result_id",
+        "extraction_bundle_id",
+        "package_id",
+        "schema_version",
+        "source_byte_size",
+        "source_sha256",
+        "stages",
+        "status",
+    }
+    identity = dict(document)
+    package_id = identity.pop("package_id", None)
+    source_byte_size = document.get("source_byte_size")
+    if (
+        set(document) != expected_keys
+        or document.get("contract_id") != DOCUMENT_PACKAGE_CONTRACT_ID
+        or document.get("schema_version") != DOCUMENT_PACKAGE_SCHEMA_VERSION
+        or document.get("document_key") != binding.document_id
+        or document.get("source_sha256") != binding.source_sha256
+        or document.get("stages") != _DOCUMENT_PACKAGE_STAGES
+        or document.get("status") != "deterministic-complete"
+        or type(source_byte_size) is not int
+        or not 1 <= source_byte_size <= _MAX_SOURCE_BYTES
+        or not _stable_identity(
+            document.get("equation_detection_result_id"),
+            "equation-detection-result",
+        )
+        or not _stable_identity(
+            document.get("extraction_bundle_id"),
+            "pdf-extraction-artifact-bundle",
+        )
+        or package_id != _id("document-processing-package", identity)
+    ):
+        raise EquationReviewEvidenceMismatch(
+            "document completion manifest is forged or inconsistent"
+        )
+    raw_inventory = document.get("artifact_files")
+    if (
+        not isinstance(raw_inventory, list)
+        or not 1 <= len(raw_inventory) <= MAX_DOCUMENT_PACKAGE_ARTIFACTS
+    ):
+        raise EquationReviewEvidenceMismatch(
+            "document completion inventory is malformed"
+        )
+    inventory: dict[PurePosixPath, _InventoryEntry] = {}
+    total_bytes = 0
+    for value in raw_inventory:
+        if not isinstance(value, dict) or set(value) != {
+            "byte_size",
+            "media_type",
+            "relative_path",
+            "sha256",
+        }:
+            raise EquationReviewEvidenceMismatch(
+                "document completion inventory is malformed"
+            )
+        raw_path = value.get("relative_path")
+        media_type = value.get("media_type")
+        byte_size = value.get("byte_size")
+        sha256 = value.get("sha256")
+        if not isinstance(raw_path, str):
+            raise EquationReviewEvidenceMismatch(
+                "document completion inventory path is malformed"
+            )
+        path = PurePosixPath(raw_path)
+        if (
+            not _safe_relative(path)
+            or raw_path != path.as_posix()
+            or "\\" in raw_path
+            or path == DOCUMENT_PACKAGE_MANIFEST
+            or "assisted" in path.parts
+            or "human" in path.parts
+            or not isinstance(media_type, str)
+            or not 1 <= len(media_type) <= 256
+            or any(ord(character) < 32 for character in media_type)
+            or type(byte_size) is not int
+            or not 0 <= byte_size <= _MAX_SOURCE_BYTES
+            or not isinstance(sha256, str)
+            or _SHA256.fullmatch(sha256) is None
+            or path in inventory
+        ):
+            raise EquationReviewEvidenceMismatch(
+                "document completion inventory entry is invalid"
+            )
+        entry = _InventoryEntry(path, media_type, byte_size, sha256)
+        inventory[path] = entry
+        total_bytes += byte_size
+    if total_bytes > MAX_DOCUMENT_PACKAGE_BYTES:
+        raise EquationReviewEvidenceMismatch(
+            "document completion inventory exceeds its byte bound"
+        )
+    source = inventory.get(PurePosixPath("source/document.pdf"))
+    required_paths = {
+        PurePosixPath("source/document.pdf"),
+        PurePosixPath("source/manifest.json"),
+        PurePosixPath("ingestion/extraction.json"),
+        PurePosixPath("ingestion/manifest.json"),
+        PurePosixPath("content/equations/deterministic/detection.json"),
+        PurePosixPath("content/equations/index.json"),
+        PurePosixPath("content/equations/manifest.json"),
+    }
+    if (
+        source is None
+        or source.media_type != "application/pdf"
+        or source.byte_size != source_byte_size
+        or source.sha256 != binding.source_sha256
+        or not required_paths.issubset(inventory)
+    ):
+        raise EquationReviewEvidenceMismatch(
+            "completed deterministic package inventory is incomplete"
+        )
+    return inventory
+
+
+def _verify_inventoried_files(
+    root: AuthorizedRoot,
+    inventory: dict[PurePosixPath, _InventoryEntry],
+) -> None:
+    for path, entry in inventory.items():
+        try:
+            observed = root.observe_file(path, max_bytes=entry.byte_size)
+        except (OSError, ValueError) as error:
+            raise EquationReviewPublicationError(
+                "document-package inventory is incomplete"
+            ) from error
+        if observed.byte_size != entry.byte_size or observed.sha256 != entry.sha256:
+            raise EquationReviewEvidenceMismatch(
+                "document-package inventoried bytes are stale"
+            )
+
+
+def _require_inventory_entry(
+    inventory: dict[PurePosixPath, _InventoryEntry],
+    path: PurePosixPath,
+    *,
+    media_type: str,
+    sha256: str | None = None,
+) -> _InventoryEntry:
+    entry = inventory.get(path)
+    if (
+        entry is None
+        or entry.media_type != media_type
+        or (sha256 is not None and entry.sha256 != sha256)
+    ):
+        raise EquationReviewEvidenceMismatch(
+            f"required evidence is absent from package inventory: {path}"
+        )
+    return entry
 
 
 def _validate_assisted_proposal(
@@ -615,41 +888,19 @@ def _validate_assisted_proposal(
     binding: EquationReviewEvidenceBinding,
     proposal_sha256: str,
 ) -> None:
-    relative = _candidate_root(binding.candidate_id) / "assisted/attempt-0001"
-    if root.state(relative) != "directory":
+    try:
+        tree = validate_review_tree(
+            root,
+            candidate_root=_candidate_root(binding.candidate_id),
+            binding=_review_binding(binding),
+        )
+    except ReviewTreeValidationError as error:
+        raise EquationReviewEvidenceMismatch(
+            "referenced assisted proposal is stale or different"
+        ) from error
+    if tree.assisted is None or tree.assisted.proposal_sha256 != proposal_sha256:
         raise EquationReviewEvidenceMismatch(
             "referenced assisted proposal is unavailable"
-        )
-    attempt_root = _existing_child(root, relative, "assisted attempt")
-    manifest = _read_json(attempt_root, PurePosixPath("manifest.json"))
-    proposal = attempt_root.observe_file(
-        PurePosixPath("proposal.txt"),
-        max_bytes=_MAX_ASSISTED_PROPOSAL_BYTES,
-    )
-    method = manifest.get("method")
-    if not isinstance(method, str):
-        raise EquationReviewEvidenceMismatch(
-            "referenced assisted proposal is stale or different"
-        )
-    identity = _assisted_identity(
-        binding=binding,
-        method=method,
-        proposal_sha256=proposal_sha256,
-    )
-    expected = {
-        **identity,
-        "artifact_files": [
-            {
-                "byte_size": proposal.byte_size,
-                "relative_path": "proposal.txt",
-                "sha256": proposal.sha256,
-            }
-        ],
-        "attempt_id": _id("equation-assisted-attempt", identity),
-    }
-    if proposal.sha256 != proposal_sha256 or manifest != expected:
-        raise EquationReviewEvidenceMismatch(
-            "referenced assisted proposal is stale or different"
         )
 
 
@@ -658,111 +909,40 @@ def _existing_revisions(
     human_root: PurePosixPath,
     binding: EquationReviewEvidenceBinding,
 ) -> tuple[HumanEquationRevision, ...]:
-    state = root.state(human_root)
-    if state == "missing":
-        return ()
-    if state != "directory":
-        raise EquationReviewPublicationError("human review root is not a directory")
-    bound = _existing_child(root, human_root, "human equation reviews")
     try:
-        paths = bound.iter_files(
-            suffix="",
-            recursive=True,
-            max_files=_MAX_REVIEW_FILES,
-            max_entries=_MAX_REVIEW_FILES + MAX_EQUATION_REVIEW_REVISIONS,
-            max_depth=2,
+        tree = validate_review_tree(
+            root,
+            candidate_root=human_root.parent,
+            binding=_review_binding(binding),
         )
-    except (OSError, ValueError) as error:
-        raise EquationReviewPublicationError(
-            "human revision inventory is unsafe"
-        ) from error
-    grouped: dict[int, set[str]] = {}
-    for path in paths:
-        if len(path.parts) != 2:
-            raise EquationReviewPublicationError(
-                "human revision inventory contains an unknown path"
-            )
-        match = _REVISION_DIRECTORY.fullmatch(path.parts[0])
-        if match is None or path.name not in {"decision.json", "manifest.json"}:
-            raise EquationReviewPublicationError(
-                "human revision inventory contains an unknown path"
-            )
-        revision = int(match.group(1))
-        if not 1 <= revision <= MAX_EQUATION_REVIEW_REVISIONS:
-            raise EquationReviewPublicationError("human revision number is invalid")
-        grouped.setdefault(revision, set()).add(path.name)
-    revisions = tuple(sorted(grouped))
-    if revisions != tuple(range(1, len(revisions) + 1)) or any(
-        grouped[item] != {"decision.json", "manifest.json"} for item in revisions
-    ):
-        raise EquationReviewPublicationError(
-            "human revisions are partial or non-monotonic"
-        )
-    records: list[HumanEquationRevision] = []
-    for revision in revisions:
-        revision_root = PurePosixPath(f"revision-{revision:04d}")
-        decision_path = revision_root / "decision.json"
-        manifest = _read_json(bound, revision_root / "manifest.json")
-        decision = _read_json(bound, decision_path)
-        try:
-            observed = bound.observe_file(
-                decision_path,
-                max_bytes=_MAX_MANIFEST_BYTES,
-            )
-        except (OSError, ValueError) as error:
-            raise EquationReviewPublicationError(
-                "human revision decision bytes are unavailable"
-            ) from error
-        core = {
-            **_binding_value(binding),
-            "assistance_proposal_sha256": manifest.get("assistance_proposal_sha256"),
-            "contract_id": EQUATION_REVIEW_CONTRACT_ID,
-            "disposition": manifest.get("disposition"),
-            "note": manifest.get("note"),
-            "revision": revision,
-            "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
-            "updated_at_utc": manifest.get("updated_at_utc"),
-        }
-        revision_id = _id("equation-human-revision", core)
-        expected_decision = {**core, "revision_id": revision_id}
-        expected_manifest = {
-            **expected_decision,
-            "artifact_files": [
-                {
-                    "byte_size": observed.byte_size,
-                    "relative_path": "decision.json",
-                    "sha256": observed.sha256,
-                }
-            ],
-            "status": "human-reviewed",
-        }
-        if decision != expected_decision or manifest != expected_manifest:
-            raise EquationReviewPublicationError(
-                "human revision completion manifest is inconsistent"
-            )
-        try:
-            timestamp = datetime.fromisoformat(str(core["updated_at_utc"]))
-            record = HumanEquationRevision(
+        return tuple(
+            HumanEquationRevision(
                 binding=binding,
-                disposition=EquationReviewDisposition(str(core["disposition"])),
-                assistance_proposal_sha256=(
-                    None
-                    if core["assistance_proposal_sha256"] is None
-                    else str(core["assistance_proposal_sha256"])
-                ),
-                note=str(core["note"]),
-                revision=revision,
-                updated_at_utc=timestamp,
-                revision_id=revision_id,
+                disposition=EquationReviewDisposition(item.disposition),
+                assistance_proposal_sha256=item.assistance_proposal_sha256,
+                note=item.note,
+                revision=item.revision,
+                updated_at_utc=item.updated_at_utc,
+                revision_id=item.revision_id,
             )
-            if record.updated_at_utc_text != core["updated_at_utc"]:
-                raise EquationReviewError("human revision UTC time is not canonical")
-        except (TypeError, ValueError) as error:
-            raise EquationReviewPublicationError(
-                "human revision decision is malformed"
-            ) from error
-        records.append(record)
-    return tuple(records)
+            for item in tree.revisions
+        )
+    except ValueError as error:
+        raise EquationReviewPublicationError(
+            "equation review history is partial or malformed"
+        ) from error
+
+
+def _review_binding(
+    binding: EquationReviewEvidenceBinding,
+) -> ReviewEvidenceIdentity:
+    return ReviewEvidenceIdentity(
+        document_id=binding.document_id,
+        candidate_id=binding.candidate_id,
+        source_sha256=binding.source_sha256,
+        candidate_evidence_sha256=binding.candidate_evidence_sha256,
+        region_image_sha256=binding.region_image_sha256,
+    )
 
 
 def _write_artifacts(
@@ -956,6 +1136,24 @@ def _authorized_root(value: object) -> AuthorizedRoot:
             "equation review publication requires a local authorized root"
         )
     return value
+
+
+def _safe_relative(value: PurePosixPath) -> bool:
+    return (
+        not value.is_absolute()
+        and value.as_posix() not in {"", "."}
+        and len(value.as_posix()) <= 4_096
+        and all(part not in {"", ".", ".."} for part in value.parts)
+    )
+
+
+def _stable_identity(value: object, namespace: str) -> bool:
+    prefix = f"{namespace}:sha256:"
+    return (
+        isinstance(value, str)
+        and value.startswith(prefix)
+        and _SHA256.fullmatch(value[len(prefix) :]) is not None
+    )
 
 
 def _opaque_id(value: object, field: str) -> str:

@@ -25,11 +25,19 @@ from projectkoios.ingestion import (
 )
 from projectkoios.references import AuthorizedRoot
 
+from .review_tree import (
+    MAX_REVIEW_ARTIFACTS,
+    ReviewEvidenceIdentity,
+    ReviewTreeValidationError,
+    validate_review_tree,
+)
+
 DOCUMENT_PACKAGE_CONTRACT_ID = "projectkoios.applications.pdf-corpus-document-package"
 DOCUMENT_PACKAGE_SCHEMA_VERSION = 1
 DOCUMENT_PACKAGE_MANIFEST = PurePosixPath("document-manifest.json")
 MAX_DOCUMENT_PACKAGE_ARTIFACTS = 10_000
 MAX_DOCUMENT_PACKAGE_BYTES = 512_000_000
+MAX_DOCUMENT_PACKAGE_REVIEW_ARTIFACTS = MAX_REVIEW_ARTIFACTS
 _MAX_ARTIFACT_BYTES = 128_000_000
 _DOCUMENT_KEY = re.compile(r"[A-Za-z0-9]+(?:[-.][A-Za-z0-9]+)*")
 _DIGEST = re.compile(r"[0-9a-f]{64}")
@@ -482,22 +490,36 @@ def _verify_publication(
         paths = root.iter_files(
             suffix="",
             recursive=True,
-            max_files=MAX_DOCUMENT_PACKAGE_ARTIFACTS,
-            max_entries=MAX_DOCUMENT_PACKAGE_ARTIFACTS + 64,
+            max_files=(
+                MAX_DOCUMENT_PACKAGE_ARTIFACTS + MAX_DOCUMENT_PACKAGE_REVIEW_ARTIFACTS
+            ),
+            max_entries=(
+                MAX_DOCUMENT_PACKAGE_ARTIFACTS
+                + MAX_DOCUMENT_PACKAGE_REVIEW_ARTIFACTS
+                + 10_000
+            ),
             max_depth=8,
         )
     except (OSError, ValueError) as error:
         raise DocumentPackagePublicationError(
             "document-package inventory is unsafe"
         ) from error
-    if set(paths) != set(expected) or root.state(DOCUMENT_PACKAGE_MANIFEST) != (
-        "regular"
+    observed_paths = set(paths)
+    expected_paths = set(expected)
+    if (
+        not expected_paths.issubset(observed_paths)
+        or root.state(DOCUMENT_PACKAGE_MANIFEST) != "regular"
     ):
         raise DocumentPackagePublicationError(
             "document-package publication is incomplete or different"
         )
-    for path in paths:
-        artifact = expected[path]
+    _verify_review_extensions(
+        root,
+        observed_paths - expected_paths,
+        package,
+        expected,
+    )
+    for path, artifact in expected.items():
         try:
             observed = root.observe_file(
                 path,
@@ -514,6 +536,103 @@ def _verify_publication(
             raise DocumentPackagePublicationError(
                 "document-package artifact bytes are different"
             )
+
+
+def _verify_review_extensions(
+    root: AuthorizedRoot,
+    paths: set[PurePosixPath],
+    package: DeterministicDocumentPackage,
+    deterministic: dict[PurePosixPath, DocumentPackageArtifact],
+) -> None:
+    if not paths:
+        return
+    index_artifact = deterministic.get(PurePosixPath("content/equations/index.json"))
+    if index_artifact is None:
+        raise DocumentPackagePublicationError(
+            "document-package equation index is unavailable"
+        )
+    try:
+        index = json.loads(index_artifact.content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise DocumentPackagePublicationError(
+            "document-package equation index is malformed"
+        ) from error
+    candidates = index.get("candidates") if isinstance(index, dict) else None
+    if not isinstance(candidates, list):
+        raise DocumentPackagePublicationError(
+            "document-package equation index is malformed"
+        )
+    bindings: dict[str, ReviewEvidenceIdentity] = {}
+    for value in candidates:
+        if not isinstance(value, dict):
+            raise DocumentPackagePublicationError(
+                "document-package equation index is malformed"
+            )
+        candidate_id = value.get("candidate_id")
+        deterministic_path_value = value.get("deterministic_manifest")
+        image_path_value = value.get("image_path")
+        image_sha256 = value.get("image_sha256")
+        source_manifest_value = value.get("source_manifest")
+        if (
+            not isinstance(candidate_id, str)
+            or not isinstance(deterministic_path_value, str)
+            or not isinstance(image_path_value, str)
+            or not isinstance(image_sha256, str)
+            or not isinstance(source_manifest_value, str)
+        ):
+            raise DocumentPackagePublicationError(
+                "document-package equation index is malformed"
+            )
+        deterministic_path = PurePosixPath(deterministic_path_value)
+        image_path = PurePosixPath(image_path_value)
+        source_manifest = PurePosixPath(source_manifest_value)
+        parts = deterministic_path.parts
+        if (
+            len(parts) != 6
+            or parts[:3] != ("content", "equations", "regions")
+            or _DIGEST.fullmatch(parts[3]) is None
+            or parts[4:] != ("deterministic", "manifest.json")
+            or deterministic_path not in deterministic
+            or image_path not in deterministic
+            or source_manifest not in deterministic
+            or deterministic[image_path].sha256 != image_sha256
+            or parts[3] in bindings
+        ):
+            raise DocumentPackagePublicationError(
+                "document-package equation index is inconsistent"
+            )
+        bindings[parts[3]] = ReviewEvidenceIdentity(
+            document_id=package.document_key,
+            candidate_id=candidate_id,
+            source_sha256=package.source_sha256,
+            candidate_evidence_sha256=deterministic[deterministic_path].sha256,
+            region_image_sha256=image_sha256,
+        )
+    grouped: dict[str, set[PurePosixPath]] = {}
+    for path in paths:
+        if (
+            len(path.parts) < 5
+            or path.parts[:3] != ("content", "equations", "regions")
+            or path.parts[3] not in bindings
+        ):
+            raise DocumentPackagePublicationError(
+                "document-package publication contains an unknown artifact"
+            )
+        grouped.setdefault(path.parts[3], set()).add(path)
+    for candidate_key, candidate_paths in grouped.items():
+        try:
+            validate_review_tree(
+                root,
+                candidate_root=(
+                    PurePosixPath("content/equations/regions") / candidate_key
+                ),
+                binding=bindings[candidate_key],
+                expected_paths=candidate_paths,
+            )
+        except ReviewTreeValidationError as error:
+            raise DocumentPackagePublicationError(
+                "document-package review extension is malformed"
+            ) from error
 
 
 def _create_parents(root: AuthorizedRoot, relative: PurePosixPath) -> None:

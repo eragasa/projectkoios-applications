@@ -43,51 +43,145 @@ def _document_root(
     tmp_path: Path,
 ) -> tuple[AuthorizedRoot, EquationReviewEvidenceBinding]:
     document = tmp_path / _DOCUMENT
-    candidate = (
-        document
-        / "content/equations/regions"
-        / equation_candidate_artifact_key(_CANDIDATE)
-    )
-    (document / "source").mkdir(parents=True, mode=0o700)
-    (candidate / "source").mkdir(parents=True)
-    (candidate / "deterministic").mkdir()
+    candidate_key = equation_candidate_artifact_key(_CANDIDATE)
+    candidate_root = f"content/equations/regions/{candidate_key}"
+    image_path = f"{candidate_root}/source/image.png"
+    candidate_source_path = f"{candidate_root}/source/manifest.json"
+    deterministic_path = f"{candidate_root}/deterministic/manifest.json"
 
     source = b"%PDF-1.4\nsynthetic bytes only\n"
     image = b"\x89PNG\r\n\x1a\nsynthetic-region"
     source_sha256 = hashlib.sha256(source).hexdigest()
     image_sha256 = hashlib.sha256(image).hexdigest()
+    detection_id = f"equation-detection-result:sha256:{'d' * 64}"
+    extraction_id = f"pdf-extraction-artifact-bundle:sha256:{'e' * 64}"
     deterministic = _canonical(
         {
-            "candidate": {"candidate_id": _CANDIDATE},
+            "candidate": {
+                "candidate_id": _CANDIDATE,
+                "rendered_region": {"content_sha256": image_sha256},
+            },
+            "detection_result_id": detection_id,
             "document_key": _DOCUMENT,
             "schema_version": 1,
             "status": "deterministic-proposal",
         }
     )
     evidence_sha256 = hashlib.sha256(deterministic).hexdigest()
+    files: dict[str, tuple[bytes, str]] = {
+        "source/document.pdf": (source, "application/pdf"),
+        "source/manifest.json": (
+            _canonical(
+                {
+                    "document_key": _DOCUMENT,
+                    "schema_version": 1,
+                    "source_byte_size": len(source),
+                    "source_path": "source/document.pdf",
+                    "source_sha256": source_sha256,
+                    "status": "immutable-source",
+                }
+            ),
+            "application/json",
+        ),
+        "ingestion/extraction.json": (
+            _canonical({"synthetic": True}),
+            "application/json",
+        ),
+        "ingestion/manifest.json": (
+            _canonical({"status": "deterministic-complete"}),
+            "application/json",
+        ),
+        "content/equations/deterministic/detection.json": (
+            _canonical({"result_id": detection_id}),
+            "application/json",
+        ),
+        image_path: (image, "image/png"),
+        candidate_source_path: (
+            _canonical(
+                {
+                    "candidate_id": _CANDIDATE,
+                    "document_key": _DOCUMENT,
+                    "image_path": image_path,
+                    "image_sha256": image_sha256,
+                    "schema_version": 1,
+                    "source_sha256": source_sha256,
+                    "status": "immutable-source-evidence",
+                }
+            ),
+            "application/json",
+        ),
+        deterministic_path: (deterministic, "application/json"),
+        "content/equations/index.json": (
+            _canonical(
+                {
+                    "candidates": [
+                        {
+                            "candidate_id": _CANDIDATE,
+                            "deterministic_manifest": deterministic_path,
+                            "evidence_status": "proposed",
+                            "image_path": image_path,
+                            "image_sha256": image_sha256,
+                            "kind": "display",
+                            "source_manifest": candidate_source_path,
+                        }
+                    ],
+                    "detection_artifact": (
+                        "content/equations/deterministic/detection.json"
+                    ),
+                    "detection_result_id": detection_id,
+                    "document_key": _DOCUMENT,
+                    "schema_version": 1,
+                    "source_sha256": source_sha256,
+                    "status": "deterministic-unreviewed",
+                }
+            ),
+            "application/json",
+        ),
+        "content/equations/manifest.json": (
+            _canonical({"status": "deterministic-unreviewed"}),
+            "application/json",
+        ),
+    }
+    inventory = [
+        {
+            "byte_size": len(content),
+            "media_type": media_type,
+            "relative_path": path,
+            "sha256": hashlib.sha256(content).hexdigest(),
+        }
+        for path, (content, media_type) in files.items()
+    ]
+    completion_identity = {
+        "artifact_files": inventory,
+        "contract_id": "projectkoios.applications.pdf-corpus-document-package",
+        "document_key": _DOCUMENT,
+        "equation_detection_result_id": detection_id,
+        "extraction_bundle_id": extraction_id,
+        "schema_version": 1,
+        "source_byte_size": len(source),
+        "source_sha256": source_sha256,
+        "stages": {
+            "assisted": "not-started",
+            "equation_detection": "deterministic-complete",
+            "human_review": "not-started",
+            "ingestion": "deterministic-complete",
+            "transcript": "not-started",
+        },
+        "status": "deterministic-complete",
+    }
+    completion = {
+        **completion_identity,
+        "package_id": (
+            "document-processing-package:sha256:"
+            f"{hashlib.sha256(_canonical(completion_identity)).hexdigest()}"
+        ),
+    }
+    files["document-manifest.json"] = (_canonical(completion), "application/json")
+    for relative, (content, _) in files.items():
+        target = document / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
 
-    (document / "source/document.pdf").write_bytes(source)
-    (document / "document-manifest.json").write_bytes(
-        _canonical(
-            {
-                "document_key": _DOCUMENT,
-                "source_sha256": source_sha256,
-                "status": "deterministic-complete",
-            }
-        )
-    )
-    (candidate / "source/image.png").write_bytes(image)
-    (candidate / "source/manifest.json").write_bytes(
-        _canonical(
-            {
-                "candidate_id": _CANDIDATE,
-                "document_key": _DOCUMENT,
-                "image_sha256": image_sha256,
-                "source_sha256": source_sha256,
-            }
-        )
-    )
-    (candidate / "deterministic/manifest.json").write_bytes(deterministic)
     root = AuthorizedRoot.existing(
         document,
         label="synthetic document package",
@@ -109,6 +203,48 @@ def _attempt(binding: EquationReviewEvidenceBinding) -> AssistedEquationAttempt:
         method="local-equation-assistance-v1",
         proposed_latex=r"E = mc^2",
     )
+
+
+def _replace_assisted_attempt(
+    tmp_path: Path,
+    binding: EquationReviewEvidenceBinding,
+    *,
+    proposal: bytes,
+    method: str,
+) -> str:
+    proposal_sha256 = hashlib.sha256(proposal).hexdigest()
+    identity = {
+        "attempt": 1,
+        "candidate_evidence_sha256": binding.candidate_evidence_sha256,
+        "candidate_id": binding.candidate_id,
+        "contract_id": ("projectkoios.applications.pdf-corpus-equation-review"),
+        "document_id": binding.document_id,
+        "method": method,
+        "proposal_path": "proposal.txt",
+        "proposal_sha256": proposal_sha256,
+        "region_image_sha256": binding.region_image_sha256,
+        "schema_version": 1,
+        "source_sha256": binding.source_sha256,
+        "status": "automated_unreviewed",
+    }
+    manifest = {
+        **identity,
+        "artifact_files": [
+            {
+                "byte_size": len(proposal),
+                "relative_path": "proposal.txt",
+                "sha256": proposal_sha256,
+            }
+        ],
+        "attempt_id": (
+            "equation-assisted-attempt:sha256:"
+            f"{hashlib.sha256(_canonical(identity)).hexdigest()}"
+        ),
+    }
+    attempt_root = _review_root(tmp_path) / "assisted/attempt-0001"
+    (attempt_root / "proposal.txt").write_bytes(proposal)
+    (attempt_root / "manifest.json").write_bytes(_canonical(manifest))
+    return proposal_sha256
 
 
 def _request(
@@ -240,6 +376,81 @@ def test_human_revisions_are_monotonic_and_preserve_prior_bytes(
     assert (_review_root(tmp_path) / "human/revision-0002/manifest.json").is_file()
 
 
+@pytest.mark.parametrize("mutation", ("delete", "corrupt"))
+def test_all_historical_assisted_references_are_revalidated(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    root, binding = _document_root(tmp_path)
+    attempt = _attempt(binding)
+    publish_assisted_equation_attempt(attempt, document_root=root)
+    append_human_equation_revision(
+        _request(binding, attempt.proposal_sha256),
+        document_root=root,
+    )
+    append_human_equation_revision(
+        _request(
+            binding,
+            None,
+            disposition=EquationReviewDisposition.REVISION_REQUIRED,
+            note="Later unassisted revision.",
+            reviewed_at=_REVIEWED_AT + timedelta(minutes=1),
+            expected_previous_revision=1,
+        ),
+        document_root=root,
+    )
+    proposal = _review_root(tmp_path) / "assisted/attempt-0001/proposal.txt"
+    if mutation == "delete":
+        proposal.unlink()
+    else:
+        proposal.write_text("corrupt proposal")
+
+    with pytest.raises(EquationReviewPublicationError, match="history"):
+        load_latest_human_equation_revision(binding, document_root=root)
+    with pytest.raises(EquationReviewPublicationError, match="history"):
+        append_human_equation_revision(
+            _request(
+                binding,
+                None,
+                disposition=EquationReviewDisposition.REJECT_CANDIDATE,
+                note="A third unassisted revision must not hide corruption.",
+                reviewed_at=_REVIEWED_AT + timedelta(minutes=2),
+                expected_previous_revision=2,
+            ),
+            document_root=root,
+        )
+
+
+@pytest.mark.parametrize(
+    ("proposal", "method"),
+    (
+        (b"", "synthetic-method"),
+        (b"\xff", "synthetic-method"),
+        (b"x" * 100_001, "synthetic-method"),
+        (b"x", "m" * 501),
+    ),
+)
+def test_rejects_loaded_assisted_artifacts_outside_creation_contract(
+    tmp_path: Path,
+    proposal: bytes,
+    method: str,
+) -> None:
+    root, binding = _document_root(tmp_path)
+    publish_assisted_equation_attempt(_attempt(binding), document_root=root)
+    proposal_sha256 = _replace_assisted_attempt(
+        tmp_path,
+        binding,
+        proposal=proposal,
+        method=method,
+    )
+
+    with pytest.raises(EquationReviewPublicationError, match="history"):
+        append_human_equation_revision(
+            _request(binding, proposal_sha256),
+            document_root=root,
+        )
+
+
 def test_rejects_stale_evidence_proposal_and_revision(
     tmp_path: Path,
 ) -> None:
@@ -274,6 +485,67 @@ def test_rejects_stale_evidence_proposal_and_revision(
             ),
             document_root=root,
         )
+
+
+def test_rejects_forged_minimal_completion_manifest(tmp_path: Path) -> None:
+    root, binding = _document_root(tmp_path)
+    (tmp_path / _DOCUMENT / "document-manifest.json").write_bytes(
+        _canonical(
+            {
+                "document_key": binding.document_id,
+                "source_sha256": binding.source_sha256,
+                "status": "deterministic-complete",
+            }
+        )
+    )
+
+    with pytest.raises(EquationReviewEvidenceMismatch, match="completion manifest"):
+        publish_assisted_equation_attempt(_attempt(binding), document_root=root)
+
+
+def test_rejects_candidate_files_absent_from_package_inventory(
+    tmp_path: Path,
+) -> None:
+    root, binding = _document_root(tmp_path)
+    candidate_id = "pizzi2020:eq:unlisted"
+    candidate_root = (
+        tmp_path
+        / _DOCUMENT
+        / "content/equations/regions"
+        / equation_candidate_artifact_key(candidate_id)
+    )
+    image = b"\x89PNG\r\n\x1a\nunlisted-region"
+    image_sha256 = hashlib.sha256(image).hexdigest()
+    deterministic = _canonical(
+        {
+            "candidate": {
+                "candidate_id": candidate_id,
+                "rendered_region": {"content_sha256": image_sha256},
+            },
+            "document_key": _DOCUMENT,
+            "status": "deterministic-proposal",
+        }
+    )
+    (candidate_root / "source").mkdir(parents=True)
+    (candidate_root / "deterministic").mkdir()
+    (candidate_root / "source/image.png").write_bytes(image)
+    (candidate_root / "source/manifest.json").write_bytes(
+        _canonical({"candidate_id": candidate_id})
+    )
+    (candidate_root / "deterministic/manifest.json").write_bytes(deterministic)
+    unlisted_binding = replace(
+        binding,
+        candidate_id=candidate_id,
+        candidate_evidence_sha256=hashlib.sha256(deterministic).hexdigest(),
+        region_image_sha256=image_sha256,
+    )
+
+    with pytest.raises(EquationReviewEvidenceMismatch, match="package inventory"):
+        publish_assisted_equation_attempt(
+            _attempt(unlisted_binding),
+            document_root=root,
+        )
+    assert not (candidate_root / "assisted").exists()
 
 
 def test_rejects_different_existing_and_partial_outputs(tmp_path: Path) -> None:
@@ -333,10 +605,7 @@ def test_completion_manifest_is_written_last_and_partial_is_terminal(
         publish_assisted_equation_attempt(_attempt(binding), document_root=root)
 
 
-def test_rejects_invalid_time_acceptance_and_concurrent_create(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_rejects_invalid_time_and_unbound_acceptance(tmp_path: Path) -> None:
     root, binding = _document_root(tmp_path)
     attempt = _attempt(binding)
     publish_assisted_equation_attempt(attempt, document_root=root)
@@ -346,6 +615,79 @@ def test_rejects_invalid_time_acceptance_and_concurrent_create(
     with pytest.raises(EquationReviewError, match="requires"):
         _request(binding, None)
 
+
+@pytest.mark.parametrize("race_window", ("state", "create"))
+@pytest.mark.parametrize("same_revision", (True, False))
+def test_classifies_completed_revision_races(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    race_window: str,
+    same_revision: bool,
+) -> None:
+    root, binding = _document_root(tmp_path)
+    attempt = _attempt(binding)
+    publish_assisted_equation_attempt(attempt, document_root=root)
+    request = _request(binding, attempt.proposal_sha256)
+    competing = (
+        request
+        if same_revision
+        else _request(
+            binding,
+            attempt.proposal_sha256,
+            note="Different concurrent decision.",
+        )
+    )
+    triggered = False
+
+    if race_window == "state":
+        original_state = AuthorizedRoot.state
+
+        def racing_state(
+            authorized_root: AuthorizedRoot,
+            relative: str | PurePosixPath,
+        ) -> str:
+            nonlocal triggered
+            path = PurePosixPath(relative)
+            if path.name == "revision-0001" and not triggered:
+                triggered = True
+                append_human_equation_revision(competing, document_root=root)
+            return original_state(authorized_root, path)
+
+        monkeypatch.setattr(AuthorizedRoot, "state", racing_state)
+    else:
+        original_create = AuthorizedRoot.create_directory
+
+        def racing_create(
+            authorized_root: AuthorizedRoot,
+            relative: str | PurePosixPath,
+        ) -> AuthorizedRoot:
+            nonlocal triggered
+            path = PurePosixPath(relative)
+            if path.name == "revision-0001" and not triggered:
+                triggered = True
+                append_human_equation_revision(competing, document_root=root)
+                raise FileExistsError(authorized_root.child_path(path))
+            return original_create(authorized_root, path)
+
+        monkeypatch.setattr(AuthorizedRoot, "create_directory", racing_create)
+
+    if same_revision:
+        result = append_human_equation_revision(request, document_root=root)
+        assert result.action is EquationReviewPublicationAction.UNCHANGED
+        assert result.revision.note == request.note
+    else:
+        with pytest.raises(EquationReviewConcurrencyError, match="different"):
+            append_human_equation_revision(request, document_root=root)
+    assert triggered
+
+
+def test_create_race_with_partial_revision_remains_publication_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, binding = _document_root(tmp_path)
+    attempt = _attempt(binding)
+    publish_assisted_equation_attempt(attempt, document_root=root)
     original = AuthorizedRoot.create_directory
 
     def racing_create(
@@ -359,7 +701,7 @@ def test_rejects_invalid_time_acceptance_and_concurrent_create(
         return original(authorized_root, path)
 
     monkeypatch.setattr(AuthorizedRoot, "create_directory", racing_create)
-    with pytest.raises(EquationReviewConcurrencyError):
+    with pytest.raises(EquationReviewPublicationError, match="partial"):
         append_human_equation_revision(
             _request(binding, attempt.proposal_sha256),
             document_root=root,

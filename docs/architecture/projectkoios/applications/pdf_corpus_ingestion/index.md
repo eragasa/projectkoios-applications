@@ -92,8 +92,15 @@ links. The application index is navigational evidence; candidates remain
 
 `publish_deterministic_document_package` exclusively creates the final
 `<document-key>` directory through `AuthorizedRoot`, writes the completion
-manifest last, and verifies every path, size, and SHA-256. Exact replay reports
-`unchanged`. A partial or different directory fails closed and is not repaired.
+manifest last, and verifies every deterministic path, size, and SHA-256. Exact
+replay reports `unchanged`. After review append, replay still verifies the exact
+deterministic inventory while admitting at most 20,000 additional files only in
+listed-candidate `assisted/attempt-0001` and contiguous `human/revision-NNNN`
+namespaces. A shared cycle-free validator requires canonical manifests, exact
+artifact inventories and identities, matching evidence bindings, valid bounded
+proposal text and method, contiguous human history, and every historical
+assisted reference. Correctly named arbitrary bytes, or any other extra,
+partial, or different output, fail closed and are not repaired.
 The current corpus runner is not yet switched from its reviewed
 content-addressed layout; wiring document keys, corpus completion, and the CLI
 is a later application-composition slice.
@@ -122,9 +129,15 @@ completion manifest is atomically written last.
 
 `append_human_equation_revision` requires an optimistic
 `expected_previous_revision`, scans a bounded contiguous revision inventory,
-and exclusively creates only the next revision. A lost create race, gap,
-partial revision, stale expected revision, or different idempotency replay is
-rejected. Each human decision binds the document and candidate identities,
+and exclusively creates only the next revision. Both the pre-create state race
+and exclusive-create race are rescanned: an exact completed concurrent revision
+is an unchanged replay, different completed evidence is a typed concurrency
+failure, and partial or malformed output remains a publication failure. Every
+distinct assisted digest referenced anywhere in existing contiguous human
+history is revalidated before load or append, so a later unassisted revision
+cannot hide missing or corrupt earlier acceptance evidence. A gap, stale
+expected revision, or different idempotency replay is rejected. Each
+human decision binds the document and candidate identities,
 source PDF SHA-256, deterministic candidate-manifest SHA-256, region-image
 SHA-256, and—when referenced—the exact attempt-0001 proposal SHA-256. Acceptance
 requires that proposal binding and is represented only by the separate human
@@ -133,12 +146,18 @@ are preserved exactly. Stable revision identity includes a caller-supplied,
 timezone-aware UTC review time; publication runtime is not injected into that
 identity.
 
-Before mutation, both operations revalidate the immutable document, source PDF,
-candidate source manifest, candidate evidence, and region image through the
-provided local `AuthorizedRoot`. The public dataclasses, publication/append
+Before mutation, both operations require the exact document-package contract
+and schema, recompute its content-derived package identity, verify every bounded
+completion-inventory file by size and SHA-256, and require the source PDF,
+source manifest, equation index, candidate source manifest, deterministic
+candidate manifest, and region image to be inventory members. The index must
+name the exact candidate paths and hashes; independently supplied or unlisted
+candidate files are rejected. Validation uses the provided local
+`AuthorizedRoot`. The public dataclasses, publication/append
 functions, and `load_latest_human_equation_revision` projection form the
-API-consumable seam. The latest projection revalidates both source evidence and
-any referenced assisted proposal before returning a human record. Root
+API-consumable seam. The latest projection revalidates source evidence and all
+assisted proposals referenced throughout human history before returning a human
+record. Root
 selection, API routing/authentication, and request-to-contract adaptation remain
 outside it. This slice does not access a
 corpus, run PDF extraction, invoke a model or network, or authorize training-data

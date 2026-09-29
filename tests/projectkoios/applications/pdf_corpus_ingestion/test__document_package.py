@@ -2,12 +2,21 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import cast
 
 import pymupdf
 import pytest
 
+from projectkoios.applications.pdf_corpus_ingestion import (
+    AssistedEquationAttempt,
+    EquationReviewDisposition,
+    EquationReviewEvidenceBinding,
+    HumanEquationRevisionRequest,
+    append_human_equation_revision,
+    publish_assisted_equation_attempt,
+)
 from projectkoios.applications.pdf_corpus_ingestion.document_package import (
     DOCUMENT_PACKAGE_MANIFEST,
     DeterministicDocumentPackage,
@@ -134,6 +143,98 @@ def test_publishes_document_directory_and_verifies_exact_replay(
     assert (document_root / "ingestion/extraction.json").is_file()
     assert (document_root / "content/equations/index.json").is_file()
     assert (document_root / "document-manifest.json").is_file()
+
+
+def test_review_append_preserves_exact_deterministic_package_replay(
+    tmp_path: Path,
+) -> None:
+    _, _, package = _package()
+    artifacts = {item.relative_path: item for item in package.artifacts}
+    index = json.loads(artifacts[PurePosixPath("content/equations/index.json")].content)
+    candidate = index["candidates"][0]
+    candidate_id = candidate["candidate_id"]
+    deterministic_path = PurePosixPath(candidate["deterministic_manifest"])
+    binding = EquationReviewEvidenceBinding(
+        document_id=package.document_key,
+        candidate_id=candidate_id,
+        source_sha256=package.source_sha256,
+        candidate_evidence_sha256=artifacts[deterministic_path].sha256,
+        region_image_sha256=candidate["image_sha256"],
+    )
+    output = tmp_path / "wannier-seven"
+    output.mkdir(mode=0o700)
+    output_root = AuthorizedRoot.existing(
+        output,
+        label="test corpus output",
+        root_alias="test-corpus-output",
+        storage_class=RootStorageClass.LOCAL,
+    )
+    assert (
+        publish_deterministic_document_package(
+            package,
+            output_root=output_root,
+        )
+        is DocumentPackagePublicationAction.CREATE
+    )
+    document_root = AuthorizedRoot.existing(
+        output / package.document_key,
+        label="published document package",
+        root_alias="test-corpus-output",
+        storage_class=RootStorageClass.LOCAL,
+    )
+    attempt = AssistedEquationAttempt.create(
+        binding=binding,
+        method="synthetic-assistance-v1",
+        proposed_latex=r"E = mc^2",
+    )
+    publish_assisted_equation_attempt(attempt, document_root=document_root)
+    append_human_equation_revision(
+        HumanEquationRevisionRequest(
+            binding=binding,
+            disposition=EquationReviewDisposition.ACCEPT_TRANSCRIPTION,
+            assistance_proposal_sha256=attempt.proposal_sha256,
+            note="Synthetic review fixture.",
+            reviewed_at_utc=datetime(2026, 9, 28, 12, 0, tzinfo=UTC),
+            expected_previous_revision=0,
+        ),
+        document_root=document_root,
+    )
+
+    assert (
+        publish_deterministic_document_package(
+            package,
+            output_root=output_root,
+        )
+        is DocumentPackagePublicationAction.UNCHANGED
+    )
+
+
+def test_deterministic_replay_rejects_named_review_garbage(
+    tmp_path: Path,
+) -> None:
+    _, _, package = _package()
+    artifacts = {item.relative_path: item for item in package.artifacts}
+    index = json.loads(artifacts[PurePosixPath("content/equations/index.json")].content)
+    candidate = index["candidates"][0]
+    candidate_root = PurePosixPath(candidate["deterministic_manifest"]).parent.parent
+    output = tmp_path / "wannier-seven"
+    output.mkdir(mode=0o700)
+    output_root = AuthorizedRoot.existing(
+        output,
+        label="test corpus output",
+        root_alias="test-corpus-output",
+        storage_class=RootStorageClass.LOCAL,
+    )
+    publish_deterministic_document_package(package, output_root=output_root)
+    attempt_root = (
+        output / package.document_key / candidate_root / "assisted/attempt-0001"
+    )
+    attempt_root.mkdir(parents=True)
+    (attempt_root / "proposal.txt").write_bytes(b"not-a-valid-proposal-manifest")
+    (attempt_root / "manifest.json").write_bytes(b"not-json")
+
+    with pytest.raises(DocumentPackagePublicationError, match="review extension"):
+        publish_deterministic_document_package(package, output_root=output_root)
 
 
 def test_partial_document_directory_fails_closed(
