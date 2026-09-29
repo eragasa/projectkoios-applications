@@ -151,7 +151,12 @@ case preserves the proposal provenance.
 
 The required interaction lifecycle is: show the immutable proposal source,
 render it, allow editing of canonical reviewer LaTeX, explicitly render the
-current representations, and only then perform a separate acceptance. The
+current representations, and only then perform a separate acceptance. Proposal
+text remains immutable and read-only even when an upstream proposal includes
+outer math delimiters. Schema-3 reviewer LaTeX is the math body only: creation
+and replay reject rather than strip leading or trailing whitespace, CR/CRLF,
+non-NFC Unicode, and outer `$...$` or `$$...$$` delimiters. Internal whitespace,
+LF, and unambiguous internal or escaped dollar syntax remain exact. The
 schema-3 acceptance persists exact bounded UTF-8 bytes and SHA-256 values for
 both `reviewer-latex.txt` and canonically derived `obsidian-markdown.md`.
 `INLINE` candidates derive `$<latex>$`; `DISPLAY` candidates derive

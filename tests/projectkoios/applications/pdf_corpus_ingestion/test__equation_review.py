@@ -448,6 +448,7 @@ def test_inline_candidate_uses_inline_obsidian_wrapper(tmp_path: Path) -> None:
     )
 
     assert accepted.revision.obsidian_markdown == "$E = mc^2$"
+    assert "$$" not in accepted.revision.obsidian_markdown
     assert (
         _review_root(tmp_path) / "human/revision-0001/obsidian-markdown.md"
     ).read_bytes() == b"$E = mc^2$"
@@ -510,7 +511,71 @@ def test_reads_schema_2_then_appends_corrected_schema_3_revision(
     ).read_bytes() == legacy_manifest
 
 
-@pytest.mark.parametrize("reviewer_latex", ("", "x" * 100_001, "\ud800"))
+def test_delimited_proposal_remains_immutable_but_only_body_can_be_accepted(
+    tmp_path: Path,
+) -> None:
+    root, binding = _document_root(tmp_path)
+    attempt = AssistedEquationAttempt.create(
+        binding=binding,
+        method="actual-proposal-shape-fixture",
+        proposed_latex=r"$E = mc^2$",
+    )
+    publish_assisted_equation_attempt(attempt, document_root=root)
+    legacy_decision, legacy_manifest = _write_legacy_schema_2_revision(
+        tmp_path,
+        binding,
+        attempt.proposal_sha256,
+    )
+
+    legacy = load_latest_human_equation_revision(binding, document_root=root)
+    assert legacy is not None
+    assert legacy.schema_version == 2
+    with pytest.raises(EquationReviewError, match="canonical math body"):
+        _request(
+            binding,
+            attempt.proposal_sha256,
+            expected_previous_revision=1,
+            reviewer_latex=attempt.proposed_latex,
+        )
+
+    accepted = append_human_equation_revision(
+        _request(
+            binding,
+            attempt.proposal_sha256,
+            expected_previous_revision=1,
+            reviewer_latex=r"E = mc^2",
+        ),
+        document_root=root,
+    )
+
+    assert accepted.revision.obsidian_markdown == "$$\nE = mc^2\n$$"
+    assert "$$\n$" not in accepted.revision.obsidian_markdown
+    assert (
+        _review_root(tmp_path) / "assisted/attempt-0001/proposal.txt"
+    ).read_text() == (r"$E = mc^2$")
+    assert (
+        _review_root(tmp_path) / "human/revision-0001/decision.json"
+    ).read_bytes() == legacy_decision
+    assert (
+        _review_root(tmp_path) / "human/revision-0001/manifest.json"
+    ).read_bytes() == legacy_manifest
+
+
+@pytest.mark.parametrize(
+    "reviewer_latex",
+    (
+        "",
+        "x" * 100_001,
+        "\ud800",
+        " E = mc^2",
+        "E = mc^2 ",
+        "E\r+1",
+        "E\r\n+1",
+        "e\u0301 = 1",
+        "$E = mc^2$",
+        "$$E = mc^2$$",
+    ),
+)
 def test_acceptance_rejects_invalid_reviewer_latex(
     tmp_path: Path,
     reviewer_latex: str,
@@ -524,6 +589,34 @@ def test_acceptance_rejects_invalid_reviewer_latex(
             reviewer_latex=reviewer_latex,
             display_mode=EquationDisplayMode.DISPLAY,
         )
+
+
+def test_canonical_body_preserves_internal_whitespace_newlines_and_escaped_dollar(
+    tmp_path: Path,
+) -> None:
+    root, binding = _document_root(tmp_path)
+    attempt = _attempt(binding)
+    publish_assisted_equation_attempt(attempt, document_root=root)
+    body = "\\text{coût: \\$5}  +\n x"
+
+    result = append_human_equation_revision(
+        _request(
+            binding,
+            attempt.proposal_sha256,
+            reviewer_latex=body,
+        ),
+        document_root=root,
+    )
+
+    assert result.revision.reviewer_latex == body
+    assert result.revision.obsidian_markdown == f"$$\n{body}\n$$"
+    assert (
+        load_latest_human_equation_revision(
+            binding,
+            document_root=root,
+        )
+        == result.revision
+    )
 
 
 def test_acceptance_rejects_text_changed_after_render(tmp_path: Path) -> None:
@@ -567,6 +660,72 @@ def test_malformed_accepted_representation_fails_closed(tmp_path: Path) -> None:
             ),
             document_root=root,
         )
+
+
+def test_replay_rejects_internally_consistent_delimited_reviewer_source(
+    tmp_path: Path,
+) -> None:
+    root, binding = _document_root(tmp_path)
+    attempt = _attempt(binding)
+    publish_assisted_equation_attempt(attempt, document_root=root)
+    append_human_equation_revision(
+        _request(binding, attempt.proposal_sha256),
+        document_root=root,
+    )
+    revision_root = _review_root(tmp_path) / "human/revision-0001"
+    reviewer_latex = b"$E = mc^2$"
+    obsidian_markdown = b"$$\n$E = mc^2$\n$$"
+    reviewer_sha256 = hashlib.sha256(reviewer_latex).hexdigest()
+    markdown_sha256 = hashlib.sha256(obsidian_markdown).hexdigest()
+    decision_value = json.loads((revision_root / "decision.json").read_bytes())
+    decision_value["reviewer_latex_sha256"] = reviewer_sha256
+    decision_value["obsidian_markdown_sha256"] = markdown_sha256
+    decision_value["render_confirmation"]["rendered_reviewer_latex_sha256"] = (
+        reviewer_sha256
+    )
+    decision_value["render_confirmation"]["rendered_obsidian_markdown_sha256"] = (
+        markdown_sha256
+    )
+    identity = {
+        key: value
+        for key, value in decision_value.items()
+        if key not in {"recorded_at_utc", "revision_id"}
+    }
+    decision_value["revision_id"] = (
+        "equation-human-revision:sha256:"
+        f"{hashlib.sha256(_canonical(identity)).hexdigest()}"
+    )
+    decision = _canonical(decision_value)
+    manifest = _canonical(
+        {
+            **decision_value,
+            "artifact_files": [
+                {
+                    "byte_size": len(decision),
+                    "relative_path": "decision.json",
+                    "sha256": hashlib.sha256(decision).hexdigest(),
+                },
+                {
+                    "byte_size": len(obsidian_markdown),
+                    "relative_path": "obsidian-markdown.md",
+                    "sha256": markdown_sha256,
+                },
+                {
+                    "byte_size": len(reviewer_latex),
+                    "relative_path": "reviewer-latex.txt",
+                    "sha256": reviewer_sha256,
+                },
+            ],
+            "status": "human-reviewed",
+        }
+    )
+    (revision_root / "reviewer-latex.txt").write_bytes(reviewer_latex)
+    (revision_root / "obsidian-markdown.md").write_bytes(obsidian_markdown)
+    (revision_root / "decision.json").write_bytes(decision)
+    (revision_root / "manifest.json").write_bytes(manifest)
+
+    with pytest.raises(EquationReviewPublicationError, match="history"):
+        load_latest_human_equation_revision(binding, document_root=root)
 
 
 def test_recorded_time_does_not_change_stable_revision_identity(

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import PurePosixPath
@@ -397,6 +398,12 @@ def _validate_revisions(
                     maximum=MAX_ASSISTED_PROPOSAL_CHARACTERS,
                     empty=False,
                 )
+                try:
+                    canonical_reviewer_latex_body(reviewer_latex)
+                except ValueError as error:
+                    raise ReviewTreeValidationError(
+                        "reviewer LaTeX is not a canonical math body"
+                    ) from error
                 reviewer_latex_sha256 = hashlib.sha256(reviewer_latex_bytes).hexdigest()
                 if reviewer_latex_sha256_value != reviewer_latex_sha256:
                     raise ReviewTreeValidationError("reviewer LaTeX hash is invalid")
@@ -536,8 +543,36 @@ def _validate_revisions(
     return tuple(records)
 
 
+def canonical_reviewer_latex_body(value: str) -> str:
+    """Require exact NFC math-body text without Markdown math delimiters."""
+    if value != value.strip():
+        raise ValueError("reviewer LaTeX has leading or trailing whitespace")
+    if "\r" in value:
+        raise ValueError("reviewer LaTeX contains a carriage return")
+    if unicodedata.normalize("NFC", value) != value:
+        raise ValueError("reviewer LaTeX is not NFC-normalized")
+    if (
+        len(value) >= 2
+        and value.startswith("$")
+        and value.endswith("$")
+        and _is_unescaped(value, len(value) - 1)
+    ):
+        raise ValueError("reviewer LaTeX contains outer math delimiters")
+    return value
+
+
+def _is_unescaped(value: str, index: int) -> bool:
+    backslashes = 0
+    cursor = index - 1
+    while cursor >= 0 and value[cursor] == "\\":
+        backslashes += 1
+        cursor -= 1
+    return backslashes % 2 == 0
+
+
 def canonical_obsidian_markdown(reviewer_latex: str, display_mode: str) -> str:
     """Derive the only accepted Obsidian Markdown wrapper representation."""
+    canonical_reviewer_latex_body(reviewer_latex)
     if display_mode == "INLINE":
         return f"${reviewer_latex}$"
     if display_mode == "DISPLAY":

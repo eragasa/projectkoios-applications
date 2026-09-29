@@ -851,12 +851,18 @@ def _validate_revision_representations(revision: HumanEquationRevision) -> None:
 
 
 def _reviewer_latex(value: object) -> str:
-    return _bounded_text(
+    bounded = _bounded_text(
         value,
         "reviewer_latex",
         maximum=MAX_ASSISTED_PROPOSAL_CHARACTERS,
         empty=False,
     )
+    try:
+        return _review_tree.canonical_reviewer_latex_body(bounded)
+    except ValueError as error:
+        raise EquationReviewError(
+            "reviewer_latex must be a canonical math body"
+        ) from error
 
 
 def _display_mode(value: object) -> EquationDisplayMode:
