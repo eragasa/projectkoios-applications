@@ -40,6 +40,17 @@ exercised through its non-authorizing handoff, and the retained 30+6 QE dataset
 is replayed from provider-normalized, provenance-bound evidence without
 calculator execution.
 
+## Capability dependencies
+
+The base wheel has no mandatory scientific or simulation dependency. Install
+`projectkoios-applications[pdf-corpus]` for the PDF-corpus and equation-review
+seam; that extra contains only references, ingestion, and ingestion's PDF
+support. Install `projectkoios-applications[simulations]` before importing the
+plane-wave DFT application capabilities. Simulation imports fail with an
+explicit extra-install message when those optional contracts are unavailable.
+The `examples` and `development` extras retain the simulation dependency needed
+by their existing scientific tests and examples.
+
 ## PDF corpus ingestion
 
 Install the capability dependencies with `projectkoios-applications[pdf-corpus]`.

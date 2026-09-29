@@ -14,9 +14,7 @@ license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"]
 authors = [
     { name = "Eugene Ragasa", email = "eugene@projectkoios.com" },
 ]
-dependencies = [
-    "projectkoios-simulations>=0.1.0.dev0,<0.2",
-]
+dependencies = []
 
 [project.urls]
 Repository = "https://github.com/eragasa/projectkoios-applications"
@@ -30,7 +28,11 @@ pdf-corpus = [
     "projectkoios-ingestion[pdf]==0.0.0",
     "projectkoios-references==0.0.0",
 ]
+simulations = [
+    "projectkoios-simulations>=0.1.0.dev0,<0.2",
+]
 examples = [
+    "projectkoios-simulations>=0.1.0.dev0,<0.2",
     "numpy>=2.3,<3",
     "physkit>=0.1,<0.2",
     "plotly>=6.5,<7",
@@ -38,6 +40,7 @@ examples = [
 ]
 development = [
     "build>=1.3,<2",
+    "projectkoios-simulations>=0.1.0.dev0,<0.2",
     "mypy>=2.3,<3",
     "numpy>=2.3,<3",
     "pytest>=9.1,<10",

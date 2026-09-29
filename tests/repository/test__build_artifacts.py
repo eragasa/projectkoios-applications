@@ -10,6 +10,7 @@ import tarfile
 import tempfile
 import unittest
 import zipfile
+from email.parser import BytesParser
 from pathlib import Path
 
 import physkit
@@ -23,10 +24,11 @@ _ROOT = Path(__file__).resolve().parents[2]
 _EPOCH = "1758931200"
 _SDIST_INVENTORY = _ROOT / "tests/fixtures/artifacts/sdist-inventory.txt"
 _SDIST_INVENTORY_SHA256 = (
-    "3b227abde5dbf8098563692eb32051eaa1b95d266041de61ee41807e7f9d6bcd"
+    "262c72ec770f778df096c2b9c7630508a0abf5b6777eb5429e77f7abb2310a15"
 )
 _WHEEL_INVENTORY = (
     "projectkoios/applications/__init__.py",
+    "projectkoios/applications/_optional_dependencies.py",
     "projectkoios/applications/py.typed",
     "projectkoios/applications/pdf_corpus_ingestion/__init__.py",
     "projectkoios/applications/pdf_corpus_ingestion/cli.py",
@@ -91,6 +93,7 @@ class BuildArtifactTest(unittest.TestCase):
             round_trip_wheel, _ = self._build(source, "--wheel")
             self.assertEqual(self._sha(first_wheel), self._sha(round_trip_wheel))
             self._assert_isolated_import(round_trip_wheel)
+            self._assert_pdf_corpus_minimal_import(round_trip_wheel)
 
     @staticmethod
     def _source_copy(destination: Path) -> Path:
@@ -154,8 +157,41 @@ class BuildArtifactTest(unittest.TestCase):
     def _assert_wheel(self, wheel: Path) -> None:
         with zipfile.ZipFile(wheel) as archive:
             names = archive.namelist()
+            metadata = BytesParser().parsebytes(
+                archive.read("projectkoios_applications-0.1.0.dev0.dist-info/METADATA")
+            )
         self.assertEqual(len(names), len(set(names)), "wheel has duplicate members")
         self.assertEqual(names, list(_WHEEL_INVENTORY))
+        requirements = metadata.get_all("Requires-Dist") or []
+        self.assertTrue(requirements)
+        self.assertTrue(all("; extra ==" in value for value in requirements))
+        pdf_requirements = {
+            value.split(";", 1)[0].strip()
+            for value in requirements
+            if 'extra == "pdf-corpus"' in value
+        }
+        self.assertEqual(
+            pdf_requirements,
+            {
+                "projectkoios-ingestion[pdf]==0.0.0",
+                "projectkoios-references==0.0.0",
+            },
+        )
+        self.assertFalse(
+            any(
+                "projectkoios-simulations" in value or "physkit" in value.lower()
+                for value in requirements
+                if 'extra == "pdf-corpus"' in value
+            )
+        )
+        self.assertIn("simulations", metadata.get_all("Provides-Extra") or [])
+        self.assertTrue(
+            any(
+                value.startswith("projectkoios-simulations")
+                and 'extra == "simulations"' in value
+                for value in requirements
+            )
+        )
 
     def _assert_sdist(self, sdist: Path | None) -> None:
         assert sdist is not None
@@ -215,6 +251,59 @@ with tempfile.TemporaryDirectory() as directory:
         and PwDftScfConvergenceReplayer
         and PwDftRelaxationComposer
     )
+"""
+        subprocess.run(
+            [sys.executable, "-I", "-c", script],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    def _assert_pdf_corpus_minimal_import(self, wheel: Path) -> None:
+        references = str(Path(next(iter(projectkoios.references.__path__))).parents[1])
+        ingestion = str(Path(next(iter(projectkoios.ingestion.__path__))).parents[1])
+        core = str(Path(next(iter(projectkoios.chunking.__path__))).parents[1])
+        script = f"""
+import importlib
+import importlib.abc
+import sys, zipfile, tempfile
+
+class BlockScientificImports(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "physkit" or fullname.startswith("physkit."):
+            raise ModuleNotFoundError(fullname)
+        if fullname == "projectkoios.simulations" or fullname.startswith(
+            "projectkoios.simulations."
+        ):
+            raise ModuleNotFoundError(fullname)
+        return None
+
+with tempfile.TemporaryDirectory() as directory:
+    zipfile.ZipFile({str(wheel)!r}).extractall(directory)
+    sys.path[:0] = [
+        directory,
+        {references!r},
+        {ingestion!r},
+        {core!r},
+    ]
+    sys.meta_path.insert(0, BlockScientificImports())
+    from projectkoios.applications.pdf_corpus_ingestion import (
+        EquationReviewEvidenceBinding,
+        PdfCorpusIngestionPlan,
+    )
+    assert EquationReviewEvidenceBinding and PdfCorpusIngestionPlan
+    assert "projectkoios.simulations" not in sys.modules
+    assert "physkit" not in sys.modules
+    for capability in (
+        "projectkoios.applications.pw_dft_scf",
+        "projectkoios.applications.pw_dft_relaxation",
+    ):
+        try:
+            importlib.import_module(capability)
+        except ImportError as error:
+            assert "projectkoios-applications[simulations]" in str(error)
+        else:
+            raise AssertionError("simulation capability imported without its extra")
 """
         subprocess.run(
             [sys.executable, "-I", "-c", script],

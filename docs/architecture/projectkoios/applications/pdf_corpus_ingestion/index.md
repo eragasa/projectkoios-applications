@@ -198,8 +198,13 @@ separate references-owned workflow.
 
 ## Dependency status
 
-The capability extra uses the factual current local candidate versions
-`projectkoios-references==0.0.0` and `projectkoios-ingestion[pdf]==0.0.0`.
+The base applications wheel has no mandatory simulation or scientific
+dependency. The `pdf-corpus` capability extra contains only the factual current
+local candidates `projectkoios-references==0.0.0` and
+`projectkoios-ingestion[pdf]==0.0.0`; it does not select
+`projectkoios-simulations` or Physkit. Plane-wave DFT applications use the
+separate `simulations` extra and fail explicitly only when those capabilities
+are imported without it.
 Development provenance is pinned to references commit/tree
 `b7581cb5f8a619883ecd73ed1d9354b85e5f57fd` /
 `41c0165e2d4cb73ca41e2bb2acace1b77b7544d9` and ingestion commit/tree

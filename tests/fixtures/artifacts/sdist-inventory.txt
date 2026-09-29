@@ -221,6 +221,7 @@ projectkoios_applications-0.1.0.dev0/src/python
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/__init__.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/_optional_dependencies.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/__init__.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/cli.py
@@ -324,6 +325,7 @@ projectkoios_applications-0.1.0.dev0/tests/repository
 projectkoios_applications-0.1.0.dev0/tests/repository/test__build_artifacts.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__calculator_authority.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__dependency_boundaries.py
+projectkoios_applications-0.1.0.dev0/tests/repository/test__optional_dependency_metadata.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__pdf_corpus_ingestion_boundaries.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__transfer_inventory.py
 projectkoios_applications-0.1.0.dev0/tests/support
