@@ -31,6 +31,15 @@ from .review_tree import (
 
 EQUATION_REVIEW_CONTRACT_ID = _review_tree.EQUATION_REVIEW_CONTRACT_ID
 EQUATION_REVIEW_SCHEMA_VERSION = _review_tree.EQUATION_REVIEW_SCHEMA_VERSION
+ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION = (
+    _review_tree.ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION
+)
+HUMAN_EQUATION_REVISION_SCHEMA_VERSION = (
+    _review_tree.HUMAN_EQUATION_REVISION_SCHEMA_VERSION
+)
+LEGACY_HUMAN_EQUATION_REVISION_SCHEMA_VERSION = (
+    _review_tree.LEGACY_HUMAN_EQUATION_REVISION_SCHEMA_VERSION
+)
 _MAX_MANIFEST_BYTES = 20_000_000
 _MAX_MANIFEST_DEPTH = 32
 _MAX_MANIFEST_ITEMS = 200_000
@@ -80,6 +89,62 @@ class EquationReviewDisposition(StrEnum):
     ACCEPT_TRANSCRIPTION = "ACCEPT_TRANSCRIPTION"
     REJECT_CANDIDATE = "REJECT_CANDIDATE"
     REVISION_REQUIRED = "REVISION_REQUIRED"
+
+
+class EquationDisplayMode(StrEnum):
+    """Canonical Obsidian wrapper selected for one reviewed equation."""
+
+    INLINE = "INLINE"
+    DISPLAY = "DISPLAY"
+
+
+@dataclass(frozen=True, slots=True)
+class EquationRenderConfirmation:
+    """Trusted evidence that a renderer saw both current canonical representations."""
+
+    renderer_id: str
+    renderer_version: str
+    rendered_reviewer_latex_sha256: str
+    rendered_obsidian_markdown_sha256: str
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        renderer_id: str,
+        renderer_version: str,
+        reviewer_latex: str,
+        display_mode: EquationDisplayMode,
+    ) -> EquationRenderConfirmation:
+        valid_latex = _reviewer_latex(reviewer_latex)
+        valid_mode = _display_mode(display_mode)
+        obsidian_markdown = _review_tree.canonical_obsidian_markdown(
+            valid_latex,
+            valid_mode.value,
+        )
+        return cls(
+            renderer_id=renderer_id,
+            renderer_version=renderer_version,
+            rendered_reviewer_latex_sha256=_text_sha256(valid_latex),
+            rendered_obsidian_markdown_sha256=_text_sha256(obsidian_markdown),
+        )
+
+    def __post_init__(self) -> None:
+        _bounded_text(self.renderer_id, "renderer_id", maximum=500, empty=False)
+        _bounded_text(
+            self.renderer_version,
+            "renderer_version",
+            maximum=500,
+            empty=False,
+        )
+        _digest(
+            self.rendered_reviewer_latex_sha256,
+            "rendered_reviewer_latex_sha256",
+        )
+        _digest(
+            self.rendered_obsidian_markdown_sha256,
+            "rendered_obsidian_markdown_sha256",
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,6 +263,9 @@ class HumanEquationRevisionRequest:
     note: str
     recorded_at_utc: datetime
     expected_previous_revision: int
+    reviewer_latex: str | None = None
+    display_mode: EquationDisplayMode | None = None
+    render_confirmation: EquationRenderConfirmation | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.binding, EquationReviewEvidenceBinding):
@@ -209,12 +277,44 @@ class HumanEquationRevisionRequest:
                 self.assistance_proposal_sha256,
                 "assistance_proposal_sha256",
             )
-        if (
-            self.disposition is EquationReviewDisposition.ACCEPT_TRANSCRIPTION
-            and self.assistance_proposal_sha256 is None
+        if self.disposition is EquationReviewDisposition.ACCEPT_TRANSCRIPTION:
+            if self.assistance_proposal_sha256 is None:
+                raise EquationReviewError(
+                    "accepted transcription requires an assisted proposal SHA-256"
+                )
+            if self.reviewer_latex is None:
+                raise EquationReviewError(
+                    "accepted transcription requires reviewer LaTeX"
+                )
+            latex = _reviewer_latex(self.reviewer_latex)
+            mode = _display_mode(self.display_mode)
+            if not isinstance(self.render_confirmation, EquationRenderConfirmation):
+                raise EquationReviewError(
+                    "accepted transcription requires render confirmation"
+                )
+            markdown = _review_tree.canonical_obsidian_markdown(
+                latex,
+                mode.value,
+            )
+            if (
+                self.render_confirmation.rendered_reviewer_latex_sha256
+                != _text_sha256(latex)
+                or self.render_confirmation.rendered_obsidian_markdown_sha256
+                != _text_sha256(markdown)
+            ):
+                raise EquationReviewError(
+                    "accepted representations changed after render confirmation"
+                )
+        elif any(
+            value is not None
+            for value in (
+                self.reviewer_latex,
+                self.display_mode,
+                self.render_confirmation,
+            )
         ):
             raise EquationReviewError(
-                "accepted transcription requires an assisted proposal SHA-256"
+                "non-acceptance cannot carry accepted representations"
             )
         _bounded_text(
             self.note,
@@ -237,10 +337,17 @@ class HumanEquationRevision:
     binding: EquationReviewEvidenceBinding
     disposition: EquationReviewDisposition
     assistance_proposal_sha256: str | None
+    reviewer_latex: str | None
+    reviewer_latex_sha256: str | None
+    obsidian_markdown: str | None
+    obsidian_markdown_sha256: str | None
+    display_mode: EquationDisplayMode | None
+    render_confirmation: EquationRenderConfirmation | None
     note: str
     revision: int
     recorded_at_utc: datetime
     revision_id: str
+    schema_version: int = HUMAN_EQUATION_REVISION_SCHEMA_VERSION
 
     def __post_init__(self) -> None:
         if not isinstance(self.binding, EquationReviewEvidenceBinding):
@@ -259,6 +366,25 @@ class HumanEquationRevision:
             raise EquationReviewError(
                 "accepted transcription requires an assisted proposal SHA-256"
             )
+        if self.schema_version == HUMAN_EQUATION_REVISION_SCHEMA_VERSION:
+            _validate_revision_representations(self)
+        elif self.schema_version == LEGACY_HUMAN_EQUATION_REVISION_SCHEMA_VERSION:
+            if any(
+                value is not None
+                for value in (
+                    self.reviewer_latex,
+                    self.reviewer_latex_sha256,
+                    self.obsidian_markdown,
+                    self.obsidian_markdown_sha256,
+                    self.display_mode,
+                    self.render_confirmation,
+                )
+            ):
+                raise EquationReviewError(
+                    "legacy revision cannot carry accepted representations"
+                )
+        else:
+            raise EquationReviewError("human revision schema is unsupported")
         _bounded_text(
             self.note,
             "note",
@@ -276,8 +402,13 @@ class HumanEquationRevision:
                 binding=self.binding,
                 disposition=self.disposition,
                 assistance_proposal_sha256=self.assistance_proposal_sha256,
+                reviewer_latex_sha256=self.reviewer_latex_sha256,
+                obsidian_markdown_sha256=self.obsidian_markdown_sha256,
+                display_mode=self.display_mode,
+                render_confirmation=self.render_confirmation,
                 note=self.note,
                 revision=self.revision,
+                schema_version=self.schema_version,
             ),
         )
         _utc_text(self.recorded_at_utc)
@@ -380,7 +511,14 @@ def append_human_equation_revision(
     if not isinstance(request, HumanEquationRevisionRequest):
         raise TypeError("request must be HumanEquationRevisionRequest")
     _authorized_root(document_root)
-    _validate_evidence(document_root, request.binding)
+    candidate_mode = _validate_evidence(document_root, request.binding)
+    if (
+        request.disposition is EquationReviewDisposition.ACCEPT_TRANSCRIPTION
+        and request.display_mode is not candidate_mode
+    ):
+        raise EquationReviewEvidenceMismatch(
+            "accepted display mode differs from deterministic candidate kind"
+        )
     human_root = _candidate_root(request.binding.candidate_id) / "human"
     revisions = _existing_revisions(
         document_root,
@@ -472,17 +610,44 @@ def _human_revision(
     *,
     revision: int,
 ) -> HumanEquationRevision:
+    reviewer_latex = request.reviewer_latex
+    display_mode = request.display_mode
+    obsidian_markdown = (
+        None
+        if reviewer_latex is None or display_mode is None
+        else _review_tree.canonical_obsidian_markdown(
+            reviewer_latex,
+            display_mode.value,
+        )
+    )
+    reviewer_latex_sha256 = (
+        None if reviewer_latex is None else _text_sha256(reviewer_latex)
+    )
+    obsidian_markdown_sha256 = (
+        None if obsidian_markdown is None else _text_sha256(obsidian_markdown)
+    )
     identity = _human_identity(
         binding=request.binding,
         disposition=request.disposition,
         assistance_proposal_sha256=request.assistance_proposal_sha256,
+        reviewer_latex_sha256=reviewer_latex_sha256,
+        obsidian_markdown_sha256=obsidian_markdown_sha256,
+        display_mode=display_mode,
+        render_confirmation=request.render_confirmation,
         note=request.note,
         revision=revision,
+        schema_version=HUMAN_EQUATION_REVISION_SCHEMA_VERSION,
     )
     return HumanEquationRevision(
         binding=request.binding,
         disposition=request.disposition,
         assistance_proposal_sha256=request.assistance_proposal_sha256,
+        reviewer_latex=reviewer_latex,
+        reviewer_latex_sha256=reviewer_latex_sha256,
+        obsidian_markdown=obsidian_markdown,
+        obsidian_markdown_sha256=obsidian_markdown_sha256,
+        display_mode=display_mode,
+        render_confirmation=request.render_confirmation,
         note=request.note,
         revision=revision,
         recorded_at_utc=request.recorded_at_utc,
@@ -521,33 +686,68 @@ def _assisted_artifacts(
 def _human_artifacts(
     revision: HumanEquationRevision,
 ) -> tuple[tuple[PurePosixPath, bytes], ...]:
+    identity = _human_identity(
+        binding=revision.binding,
+        disposition=revision.disposition,
+        assistance_proposal_sha256=revision.assistance_proposal_sha256,
+        reviewer_latex_sha256=revision.reviewer_latex_sha256,
+        obsidian_markdown_sha256=revision.obsidian_markdown_sha256,
+        display_mode=revision.display_mode,
+        render_confirmation=revision.render_confirmation,
+        note=revision.note,
+        revision=revision.revision,
+        schema_version=revision.schema_version,
+    )
     decision_value = {
-        **_binding_value(revision.binding),
-        "assistance_proposal_sha256": revision.assistance_proposal_sha256,
-        "contract_id": EQUATION_REVIEW_CONTRACT_ID,
-        "disposition": revision.disposition.value,
-        "note": revision.note,
-        "revision": revision.revision,
-        "revision_id": revision.revision_id,
+        **identity,
         "recorded_at_utc": revision.recorded_at_utc_text,
-        "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
+        "revision_id": revision.revision_id,
     }
     decision = _canonical(decision_value)
+    artifacts = [
+        {
+            "byte_size": len(decision),
+            "relative_path": "decision.json",
+            "sha256": hashlib.sha256(decision).hexdigest(),
+        }
+    ]
+    payloads: list[tuple[PurePosixPath, bytes]] = [
+        (PurePosixPath("decision.json"), decision)
+    ]
+    if revision.disposition is EquationReviewDisposition.ACCEPT_TRANSCRIPTION:
+        assert revision.obsidian_markdown is not None
+        assert revision.obsidian_markdown_sha256 is not None
+        assert revision.reviewer_latex is not None
+        assert revision.reviewer_latex_sha256 is not None
+        obsidian_markdown = revision.obsidian_markdown.encode("utf-8")
+        reviewer_latex = revision.reviewer_latex.encode("utf-8")
+        artifacts.extend(
+            [
+                {
+                    "byte_size": len(obsidian_markdown),
+                    "relative_path": "obsidian-markdown.md",
+                    "sha256": revision.obsidian_markdown_sha256,
+                },
+                {
+                    "byte_size": len(reviewer_latex),
+                    "relative_path": "reviewer-latex.txt",
+                    "sha256": revision.reviewer_latex_sha256,
+                },
+            ]
+        )
+        payloads.extend(
+            [
+                (PurePosixPath("obsidian-markdown.md"), obsidian_markdown),
+                (PurePosixPath("reviewer-latex.txt"), reviewer_latex),
+            ]
+        )
     manifest = {
         **decision_value,
-        "artifact_files": [
-            {
-                "byte_size": len(decision),
-                "relative_path": "decision.json",
-                "sha256": hashlib.sha256(decision).hexdigest(),
-            }
-        ],
+        "artifact_files": artifacts,
         "status": "human-reviewed",
     }
-    return (
-        (PurePosixPath("decision.json"), decision),
-        (PurePosixPath("manifest.json"), _canonical(manifest)),
-    )
+    payloads.append((PurePosixPath("manifest.json"), _canonical(manifest)))
+    return tuple(payloads)
 
 
 def _human_identity(
@@ -555,18 +755,118 @@ def _human_identity(
     binding: EquationReviewEvidenceBinding,
     disposition: EquationReviewDisposition,
     assistance_proposal_sha256: str | None,
+    reviewer_latex_sha256: str | None,
+    obsidian_markdown_sha256: str | None,
+    display_mode: EquationDisplayMode | None,
+    render_confirmation: EquationRenderConfirmation | None,
     note: str,
     revision: int,
+    schema_version: int,
 ) -> dict[str, object]:
+    if schema_version == LEGACY_HUMAN_EQUATION_REVISION_SCHEMA_VERSION:
+        return {
+            **_binding_value(binding),
+            "assistance_proposal_sha256": assistance_proposal_sha256,
+            "contract_id": EQUATION_REVIEW_CONTRACT_ID,
+            "disposition": disposition.value,
+            "note": note,
+            "revision": revision,
+            "schema_version": schema_version,
+        }
     return {
         **_binding_value(binding),
         "assistance_proposal_sha256": assistance_proposal_sha256,
         "contract_id": EQUATION_REVIEW_CONTRACT_ID,
+        "display_mode": None if display_mode is None else display_mode.value,
         "disposition": disposition.value,
         "note": note,
+        "obsidian_markdown_path": (
+            None if obsidian_markdown_sha256 is None else "obsidian-markdown.md"
+        ),
+        "obsidian_markdown_sha256": obsidian_markdown_sha256,
+        "render_confirmation": _render_confirmation_value(render_confirmation),
+        "reviewer_latex_path": (
+            None if reviewer_latex_sha256 is None else "reviewer-latex.txt"
+        ),
+        "reviewer_latex_sha256": reviewer_latex_sha256,
         "revision": revision,
-        "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
+        "schema_version": schema_version,
     }
+
+
+def _render_confirmation_value(
+    confirmation: EquationRenderConfirmation | None,
+) -> dict[str, str] | None:
+    if confirmation is None:
+        return None
+    return {
+        "renderer_id": confirmation.renderer_id,
+        "renderer_version": confirmation.renderer_version,
+        "rendered_obsidian_markdown_sha256": (
+            confirmation.rendered_obsidian_markdown_sha256
+        ),
+        "rendered_reviewer_latex_sha256": (confirmation.rendered_reviewer_latex_sha256),
+    }
+
+
+def _validate_revision_representations(revision: HumanEquationRevision) -> None:
+    if revision.disposition is not EquationReviewDisposition.ACCEPT_TRANSCRIPTION:
+        if any(
+            value is not None
+            for value in (
+                revision.reviewer_latex,
+                revision.reviewer_latex_sha256,
+                revision.obsidian_markdown,
+                revision.obsidian_markdown_sha256,
+                revision.display_mode,
+                revision.render_confirmation,
+            )
+        ):
+            raise EquationReviewError(
+                "non-acceptance cannot carry accepted representations"
+            )
+        return
+    if revision.reviewer_latex is None:
+        raise EquationReviewError("accepted transcription requires reviewer LaTeX")
+    latex = _reviewer_latex(revision.reviewer_latex)
+    if revision.reviewer_latex_sha256 != _text_sha256(latex):
+        raise EquationReviewError("reviewer LaTeX SHA-256 is inconsistent")
+    mode = _display_mode(revision.display_mode)
+    markdown = _review_tree.canonical_obsidian_markdown(latex, mode.value)
+    if revision.obsidian_markdown != markdown:
+        raise EquationReviewError("Obsidian Markdown is not canonically derived")
+    if revision.obsidian_markdown_sha256 != _text_sha256(markdown):
+        raise EquationReviewError("Obsidian Markdown SHA-256 is inconsistent")
+    confirmation = revision.render_confirmation
+    if not isinstance(confirmation, EquationRenderConfirmation):
+        raise EquationReviewError("accepted transcription requires render confirmation")
+    if (
+        confirmation.rendered_reviewer_latex_sha256 != revision.reviewer_latex_sha256
+        or confirmation.rendered_obsidian_markdown_sha256
+        != revision.obsidian_markdown_sha256
+    ):
+        raise EquationReviewError(
+            "accepted representations changed after render confirmation"
+        )
+
+
+def _reviewer_latex(value: object) -> str:
+    return _bounded_text(
+        value,
+        "reviewer_latex",
+        maximum=MAX_ASSISTED_PROPOSAL_CHARACTERS,
+        empty=False,
+    )
+
+
+def _display_mode(value: object) -> EquationDisplayMode:
+    if not isinstance(value, EquationDisplayMode):
+        raise EquationReviewError("display_mode is invalid")
+    return value
+
+
+def _text_sha256(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def _assisted_identity(
@@ -582,7 +882,7 @@ def _assisted_identity(
         "method": method,
         "proposal_path": "proposal.txt",
         "proposal_sha256": proposal_sha256,
-        "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
+        "schema_version": ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION,
         "status": "automated_unreviewed",
     }
 
@@ -606,7 +906,7 @@ def _candidate_root(candidate_id: str) -> PurePosixPath:
 def _validate_evidence(
     root: AuthorizedRoot,
     binding: EquationReviewEvidenceBinding,
-) -> None:
+) -> EquationDisplayMode:
     document = _read_json(root, DOCUMENT_PACKAGE_MANIFEST)
     inventory = _document_package_inventory(document, binding)
     _verify_inventoried_files(root, inventory)
@@ -711,10 +1011,12 @@ def _validate_evidence(
         or index_record.get("image_path") != image_path.as_posix()
         or index_record.get("image_sha256") != binding.region_image_sha256
         or index_record.get("source_manifest") != candidate_source_path.as_posix()
+        or index_record.get("kind") not in {"display", "inline"}
     ):
         raise EquationReviewEvidenceMismatch(
             "candidate is not exactly listed by the deterministic package"
         )
+    return EquationDisplayMode(str(index_record["kind"]).upper())
 
 
 def _document_package_inventory(
@@ -911,10 +1213,34 @@ def _existing_revisions(
                 binding=binding,
                 disposition=EquationReviewDisposition(item.disposition),
                 assistance_proposal_sha256=item.assistance_proposal_sha256,
+                reviewer_latex=item.reviewer_latex,
+                reviewer_latex_sha256=item.reviewer_latex_sha256,
+                obsidian_markdown=item.obsidian_markdown,
+                obsidian_markdown_sha256=item.obsidian_markdown_sha256,
+                display_mode=(
+                    None
+                    if item.display_mode is None
+                    else EquationDisplayMode(item.display_mode)
+                ),
+                render_confirmation=(
+                    None
+                    if item.render_confirmation is None
+                    else EquationRenderConfirmation(
+                        renderer_id=item.render_confirmation.renderer_id,
+                        renderer_version=item.render_confirmation.renderer_version,
+                        rendered_reviewer_latex_sha256=(
+                            item.render_confirmation.rendered_reviewer_latex_sha256
+                        ),
+                        rendered_obsidian_markdown_sha256=(
+                            item.render_confirmation.rendered_obsidian_markdown_sha256
+                        ),
+                    )
+                ),
                 note=item.note,
                 revision=item.revision,
                 recorded_at_utc=item.recorded_at_utc,
                 revision_id=item.revision_id,
+                schema_version=item.schema_version,
             )
             for item in tree.revisions
         )

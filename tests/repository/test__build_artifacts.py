@@ -238,6 +238,8 @@ with tempfile.TemporaryDirectory() as directory:
         {core!r},
     ]
     from projectkoios.applications.pdf_corpus_ingestion import (
+        EquationDisplayMode,
+        EquationRenderConfirmation,
         EquationReviewEvidenceBinding,
         PdfCorpusIngestionPlan,
     )
@@ -246,7 +248,9 @@ with tempfile.TemporaryDirectory() as directory:
         PwDftRelaxationComposer,
     )
     assert (
-        EquationReviewEvidenceBinding
+        EquationDisplayMode
+        and EquationRenderConfirmation
+        and EquationReviewEvidenceBinding
         and PdfCorpusIngestionPlan
         and PwDftScfConvergenceReplayer
         and PwDftRelaxationComposer
@@ -288,10 +292,17 @@ with tempfile.TemporaryDirectory() as directory:
     ]
     sys.meta_path.insert(0, BlockScientificImports())
     from projectkoios.applications.pdf_corpus_ingestion import (
+        EquationDisplayMode,
+        EquationRenderConfirmation,
         EquationReviewEvidenceBinding,
         PdfCorpusIngestionPlan,
     )
-    assert EquationReviewEvidenceBinding and PdfCorpusIngestionPlan
+    assert (
+        EquationDisplayMode
+        and EquationRenderConfirmation
+        and EquationReviewEvidenceBinding
+        and PdfCorpusIngestionPlan
+    )
     assert "projectkoios.simulations" not in sys.modules
     assert "physkit" not in sys.modules
     for capability in (

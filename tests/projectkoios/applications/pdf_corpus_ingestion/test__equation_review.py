@@ -9,8 +9,10 @@ from pathlib import Path, PurePosixPath
 import pytest
 
 from projectkoios.applications.pdf_corpus_ingestion import (
-    EQUATION_REVIEW_SCHEMA_VERSION,
+    ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION,
     AssistedEquationAttempt,
+    EquationDisplayMode,
+    EquationRenderConfirmation,
     EquationReviewConcurrencyError,
     EquationReviewDisposition,
     EquationReviewError,
@@ -42,6 +44,8 @@ def _canonical(value: object) -> bytes:
 
 def _document_root(
     tmp_path: Path,
+    *,
+    candidate_kind: str = "display",
 ) -> tuple[AuthorizedRoot, EquationReviewEvidenceBinding]:
     document = tmp_path / _DOCUMENT
     candidate_key = equation_candidate_artifact_key(_CANDIDATE)
@@ -122,7 +126,7 @@ def _document_root(
                             "evidence_status": "proposed",
                             "image_path": image_path,
                             "image_sha256": image_sha256,
-                            "kind": "display",
+                            "kind": candidate_kind,
                             "source_manifest": candidate_source_path,
                         }
                     ],
@@ -224,7 +228,7 @@ def _replace_assisted_attempt(
         "proposal_path": "proposal.txt",
         "proposal_sha256": proposal_sha256,
         "region_image_sha256": binding.region_image_sha256,
-        "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
+        "schema_version": ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION,
         "source_sha256": binding.source_sha256,
         "status": "automated_unreviewed",
     }
@@ -258,7 +262,19 @@ def _request(
     note: str = "Checked against the exact displayed region.",
     recorded_at: datetime = _RECORDED_AT,
     expected_previous_revision: int = 0,
+    reviewer_latex: str = r"E = mc^2",
+    display_mode: EquationDisplayMode = EquationDisplayMode.DISPLAY,
+    render_confirmation: EquationRenderConfirmation | None = None,
 ) -> HumanEquationRevisionRequest:
+    accepting = disposition is EquationReviewDisposition.ACCEPT_TRANSCRIPTION
+    confirmation = render_confirmation
+    if accepting and confirmation is None:
+        confirmation = EquationRenderConfirmation.create(
+            renderer_id="mathjax",
+            renderer_version="3.2.2",
+            reviewer_latex=reviewer_latex,
+            display_mode=display_mode,
+        )
     return HumanEquationRevisionRequest(
         binding=binding,
         disposition=disposition,
@@ -266,7 +282,59 @@ def _request(
         note=note,
         recorded_at_utc=recorded_at,
         expected_previous_revision=expected_previous_revision,
+        reviewer_latex=reviewer_latex if accepting else None,
+        display_mode=display_mode if accepting else None,
+        render_confirmation=confirmation if accepting else None,
     )
+
+
+def _write_legacy_schema_2_revision(
+    tmp_path: Path,
+    binding: EquationReviewEvidenceBinding,
+    proposal_sha256: str,
+) -> tuple[bytes, bytes]:
+    identity = {
+        "assistance_proposal_sha256": proposal_sha256,
+        "candidate_evidence_sha256": binding.candidate_evidence_sha256,
+        "candidate_id": binding.candidate_id,
+        "contract_id": "projectkoios.applications.pdf-corpus-equation-review",
+        "disposition": "ACCEPT_TRANSCRIPTION",
+        "document_id": binding.document_id,
+        "note": "Immutable schema-2 acceptance.",
+        "region_image_sha256": binding.region_image_sha256,
+        "revision": 1,
+        "schema_version": 2,
+        "source_sha256": binding.source_sha256,
+    }
+    decision = _canonical(
+        {
+            **identity,
+            "recorded_at_utc": "2026-09-28T12:00:00.000000Z",
+            "revision_id": (
+                "equation-human-revision:sha256:"
+                f"{hashlib.sha256(_canonical(identity)).hexdigest()}"
+            ),
+        }
+    )
+    decision_value = json.loads(decision)
+    manifest = _canonical(
+        {
+            **decision_value,
+            "artifact_files": [
+                {
+                    "byte_size": len(decision),
+                    "relative_path": "decision.json",
+                    "sha256": hashlib.sha256(decision).hexdigest(),
+                }
+            ],
+            "status": "human-reviewed",
+        }
+    )
+    revision_root = _review_root(tmp_path) / "human/revision-0001"
+    revision_root.mkdir(parents=True)
+    (revision_root / "decision.json").write_bytes(decision)
+    (revision_root / "manifest.json").write_bytes(manifest)
+    return decision, manifest
 
 
 def _review_root(tmp_path: Path) -> Path:
@@ -322,6 +390,9 @@ def test_human_acceptance_is_a_separate_exactly_bound_revision(
     assistance = json.loads(
         (review_root / "assisted/attempt-0001/manifest.json").read_text()
     )
+    revision_manifest = json.loads(
+        (review_root / "human/revision-0001/manifest.json").read_text()
+    )
 
     assert first.action is EquationReviewPublicationAction.CREATE
     assert replay.action is EquationReviewPublicationAction.UNCHANGED
@@ -343,7 +414,159 @@ def test_human_acceptance_is_a_separate_exactly_bound_revision(
     assert decision["region_image_sha256"] == binding.region_image_sha256
     assert decision["note"] == request.note
     assert decision["recorded_at_utc"] == "2026-09-28T12:00:00.000000Z"
+    assert decision["display_mode"] == "DISPLAY"
+    assert decision["reviewer_latex_sha256"] == attempt.proposal_sha256
+    assert first.revision.reviewer_latex == attempt.proposed_latex
+    assert first.revision.obsidian_markdown == "$$\nE = mc^2\n$$"
+    assert (
+        review_root / "human/revision-0001/reviewer-latex.txt"
+    ).read_bytes() == b"E = mc^2"
+    assert (
+        review_root / "human/revision-0001/obsidian-markdown.md"
+    ).read_bytes() == b"$$\nE = mc^2\n$$"
+    assert [item["relative_path"] for item in revision_manifest["artifact_files"]] == [
+        "decision.json",
+        "obsidian-markdown.md",
+        "reviewer-latex.txt",
+    ]
+    assert "mathml" not in json.dumps(revision_manifest).lower()
     assert assistance["status"] == "automated_unreviewed"
+
+
+def test_inline_candidate_uses_inline_obsidian_wrapper(tmp_path: Path) -> None:
+    root, binding = _document_root(tmp_path, candidate_kind="inline")
+    attempt = _attempt(binding)
+    publish_assisted_equation_attempt(attempt, document_root=root)
+
+    accepted = append_human_equation_revision(
+        _request(
+            binding,
+            attempt.proposal_sha256,
+            display_mode=EquationDisplayMode.INLINE,
+        ),
+        document_root=root,
+    )
+
+    assert accepted.revision.obsidian_markdown == "$E = mc^2$"
+    assert (
+        _review_root(tmp_path) / "human/revision-0001/obsidian-markdown.md"
+    ).read_bytes() == b"$E = mc^2$"
+
+
+def test_acceptance_rejects_wrapper_different_from_candidate_kind(
+    tmp_path: Path,
+) -> None:
+    root, binding = _document_root(tmp_path, candidate_kind="inline")
+    attempt = _attempt(binding)
+    publish_assisted_equation_attempt(attempt, document_root=root)
+
+    with pytest.raises(EquationReviewEvidenceMismatch, match="display mode"):
+        append_human_equation_revision(
+            _request(binding, attempt.proposal_sha256),
+            document_root=root,
+        )
+
+
+def test_reads_schema_2_then_appends_corrected_schema_3_revision(
+    tmp_path: Path,
+) -> None:
+    root, binding = _document_root(tmp_path)
+    attempt = _attempt(binding)
+    publish_assisted_equation_attempt(attempt, document_root=root)
+    legacy_decision, legacy_manifest = _write_legacy_schema_2_revision(
+        tmp_path,
+        binding,
+        attempt.proposal_sha256,
+    )
+
+    legacy = load_latest_human_equation_revision(binding, document_root=root)
+    assert legacy is not None
+    assert legacy.schema_version == 2
+    assert legacy.reviewer_latex is None
+
+    corrected = r"E = mc^{2}"
+    appended = append_human_equation_revision(
+        _request(
+            binding,
+            attempt.proposal_sha256,
+            note="Accepted after editing and rendering the correction.",
+            expected_previous_revision=1,
+            reviewer_latex=corrected,
+        ),
+        document_root=root,
+    )
+
+    assert appended.revision.revision == 2
+    assert appended.revision.schema_version == 3
+    assert appended.revision.reviewer_latex == corrected
+    assert appended.revision.reviewer_latex != attempt.proposed_latex
+    assert appended.revision.assistance_proposal_sha256 == attempt.proposal_sha256
+    assert appended.revision.obsidian_markdown == f"$$\n{corrected}\n$$"
+    assert (
+        _review_root(tmp_path) / "human/revision-0001/decision.json"
+    ).read_bytes() == legacy_decision
+    assert (
+        _review_root(tmp_path) / "human/revision-0001/manifest.json"
+    ).read_bytes() == legacy_manifest
+
+
+@pytest.mark.parametrize("reviewer_latex", ("", "x" * 100_001, "\ud800"))
+def test_acceptance_rejects_invalid_reviewer_latex(
+    tmp_path: Path,
+    reviewer_latex: str,
+) -> None:
+    _, binding = _document_root(tmp_path)
+
+    with pytest.raises(EquationReviewError):
+        EquationRenderConfirmation.create(
+            renderer_id="mathjax",
+            renderer_version="3.2.2",
+            reviewer_latex=reviewer_latex,
+            display_mode=EquationDisplayMode.DISPLAY,
+        )
+
+
+def test_acceptance_rejects_text_changed_after_render(tmp_path: Path) -> None:
+    _, binding = _document_root(tmp_path)
+    rendered = EquationRenderConfirmation.create(
+        renderer_id="mathjax",
+        renderer_version="3.2.2",
+        reviewer_latex=r"E = mc^2",
+        display_mode=EquationDisplayMode.DISPLAY,
+    )
+
+    with pytest.raises(EquationReviewError, match="changed after render"):
+        _request(
+            binding,
+            "a" * 64,
+            reviewer_latex=r"E = mc^{2}",
+            render_confirmation=rendered,
+        )
+
+
+def test_malformed_accepted_representation_fails_closed(tmp_path: Path) -> None:
+    root, binding = _document_root(tmp_path)
+    attempt = _attempt(binding)
+    publish_assisted_equation_attempt(attempt, document_root=root)
+    append_human_equation_revision(
+        _request(binding, attempt.proposal_sha256),
+        document_root=root,
+    )
+    markdown = _review_root(tmp_path) / "human/revision-0001/obsidian-markdown.md"
+    markdown.write_text("$silently divergent$", encoding="utf-8")
+
+    with pytest.raises(EquationReviewPublicationError, match="history"):
+        load_latest_human_equation_revision(binding, document_root=root)
+    with pytest.raises(EquationReviewPublicationError, match="history"):
+        append_human_equation_revision(
+            _request(
+                binding,
+                None,
+                disposition=EquationReviewDisposition.REJECT_CANDIDATE,
+                expected_previous_revision=1,
+            ),
+            document_root=root,
+        )
 
 
 def test_recorded_time_does_not_change_stable_revision_identity(
@@ -409,7 +632,10 @@ def test_human_history_orders_by_revision_not_recorded_time(
         == second.revision
     )
     assert first_path.read_bytes() == first_bytes
-    assert (_review_root(tmp_path) / "human/revision-0002/manifest.json").is_file()
+    second_root = _review_root(tmp_path) / "human/revision-0002"
+    assert (second_root / "manifest.json").is_file()
+    assert not (second_root / "reviewer-latex.txt").exists()
+    assert not (second_root / "obsidian-markdown.md").exists()
 
 
 @pytest.mark.parametrize("mutation", ("delete", "corrupt"))

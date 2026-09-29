@@ -11,6 +11,8 @@ import pytest
 
 from projectkoios.applications.pdf_corpus_ingestion import (
     AssistedEquationAttempt,
+    EquationDisplayMode,
+    EquationRenderConfirmation,
     EquationReviewDisposition,
     EquationReviewEvidenceBinding,
     HumanEquationRevisionRequest,
@@ -196,6 +198,14 @@ def test_review_append_preserves_exact_deterministic_package_replay(
             note="Synthetic review fixture.",
             recorded_at_utc=datetime(2026, 9, 28, 12, 0, tzinfo=UTC),
             expected_previous_revision=0,
+            reviewer_latex=attempt.proposed_latex,
+            display_mode=EquationDisplayMode.DISPLAY,
+            render_confirmation=EquationRenderConfirmation.create(
+                renderer_id="mathjax",
+                renderer_version="3.2.2",
+                reviewer_latex=attempt.proposed_latex,
+                display_mode=EquationDisplayMode.DISPLAY,
+            ),
         ),
         document_root=document_root,
     )

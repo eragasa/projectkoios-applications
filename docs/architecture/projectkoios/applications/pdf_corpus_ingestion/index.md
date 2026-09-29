@@ -94,7 +94,7 @@ links. The application index is navigational evidence; candidates remain
 `<document-key>` directory through `AuthorizedRoot`, writes the completion
 manifest last, and verifies every deterministic path, size, and SHA-256. Exact
 replay reports `unchanged`. After review append, replay still verifies the exact
-deterministic inventory while admitting at most 20,000 additional files only in
+deterministic inventory while admitting at most 39,998 additional files only in
 listed-candidate `assisted/attempt-0001` and contiguous `human/revision-NNNN`
 namespaces. A shared cycle-free validator requires canonical manifests, exact
 artifact inventories and identities, matching evidence bindings, valid bounded
@@ -107,8 +107,10 @@ is a later application-composition slice.
 
 ## Append-only equation review
 
-The narrow application-owned review seam uses contract schema 2 and appends to
-one already-published candidate region without changing deterministic evidence:
+The narrow application-owned review seam keeps immutable assisted attempt schema
+2 and writes new human revisions in schema 3. It can read and fully validate an
+existing contiguous schema-2 human history before appending a later schema-3
+revision; existing records are never rewritten:
 
 ```text
 content/equations/regions/<candidate-digest>/
@@ -117,6 +119,8 @@ content/equations/regions/<candidate-digest>/
 │   └── manifest.json
 └── human/revision-0001/
     ├── decision.json
+    ├── obsidian-markdown.md       # acceptance only
+    ├── reviewer-latex.txt         # acceptance only
     └── manifest.json
 ```
 
@@ -141,8 +145,26 @@ human decision binds the document and candidate identities,
 source PDF SHA-256, deterministic candidate-manifest SHA-256, region-image
 SHA-256, and—when referenced—the exact attempt-0001 proposal SHA-256. Acceptance
 requires that proposal binding and is represented only by the separate human
-record; it never mutates or upgrades the assisted status. Disposition and note
-are preserved exactly. `recorded_at_utc` is a timezone-aware UTC receipt time
+record; it never mutates or upgrades the assisted status. An accepted reviewer
+transcription may be byte-identical to the proposal or a correction, but either
+case preserves the proposal provenance.
+
+The required interaction lifecycle is: show the immutable proposal source,
+render it, allow editing of canonical reviewer LaTeX, explicitly render the
+current representations, and only then perform a separate acceptance. The
+schema-3 acceptance persists exact bounded UTF-8 bytes and SHA-256 values for
+both `reviewer-latex.txt` and canonically derived `obsidian-markdown.md`.
+`INLINE` candidates derive `$<latex>$`; `DISPLAY` candidates derive
+`$$\n<latex>\n$$`. The mode must match the deterministic candidate kind, and
+callers cannot supply Markdown independently, so the representations cannot
+silently diverge. Render confirmation identifies the renderer and version and
+binds both current representation hashes. Editing either representation after
+render makes acceptance fail. Renderer-produced MathML or HTML is only preview
+evidence and is never substituted for either canonical source representation.
+Rejection and other non-acceptance dispositions carry neither accepted source
+artifact.
+
+Disposition and note are preserved exactly. `recorded_at_utc` is a timezone-aware UTC receipt time
 supplied only by the trusted API adapter; browsers and other untrusted request
 callers cannot choose it. The application seam requires that trusted caller but
 does not claim to authenticate it. Receipt time is stored in the immutable

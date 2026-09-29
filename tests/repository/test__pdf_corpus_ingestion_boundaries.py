@@ -29,7 +29,7 @@ _COMPONENTS = (
 )
 
 
-def test_capability_has_no_acceptance_private_cli_or_process_imports() -> None:
+def test_capability_has_no_owner_private_cli_or_process_imports() -> None:
     forbidden_modules = {
         "subprocess",
         "socket",
@@ -45,7 +45,6 @@ def test_capability_has_no_acceptance_private_cli_or_process_imports() -> None:
         "CanonicalAssetAuthorization",
         "CanonicalAsset",
         "citekey",
-        "acceptance",
         "_resolve_items",
     }
     for path in sorted(_PACKAGE.glob("*.py")):

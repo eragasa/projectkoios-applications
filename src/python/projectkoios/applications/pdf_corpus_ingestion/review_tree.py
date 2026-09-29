@@ -12,13 +12,16 @@ from pathlib import PurePosixPath
 from projectkoios.references import AuthorizedRoot
 
 EQUATION_REVIEW_CONTRACT_ID = "projectkoios.applications.pdf-corpus-equation-review"
-EQUATION_REVIEW_SCHEMA_VERSION = 2
+EQUATION_REVIEW_SCHEMA_VERSION = 3
+ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION = 2
+LEGACY_HUMAN_EQUATION_REVISION_SCHEMA_VERSION = 2
+HUMAN_EQUATION_REVISION_SCHEMA_VERSION = 3
 MAX_EQUATION_REVIEW_REVISIONS = 9_999
 MAX_EQUATION_REVIEW_NOTE_CHARACTERS = 10_000
 MAX_ASSISTED_PROPOSAL_CHARACTERS = 100_000
 MAX_ASSISTED_PROPOSAL_BYTES = 400_000
 MAX_REVIEW_ARTIFACT_BYTES = 20_000_000
-MAX_REVIEW_ARTIFACTS = 2 + 2 * MAX_EQUATION_REVIEW_REVISIONS
+MAX_REVIEW_ARTIFACTS = 2 + 4 * MAX_EQUATION_REVIEW_REVISIONS
 _MAX_JSON_DEPTH = 32
 _MAX_JSON_ITEMS = 200_000
 _MAX_JSON_STRING_BYTES = 1_100_000
@@ -62,13 +65,28 @@ class ValidatedAssistedAttempt:
 
 
 @dataclass(frozen=True, slots=True)
+class ValidatedRenderConfirmation:
+    renderer_id: str
+    renderer_version: str
+    rendered_reviewer_latex_sha256: str
+    rendered_obsidian_markdown_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
 class ValidatedHumanRevision:
     disposition: str
     assistance_proposal_sha256: str | None
+    reviewer_latex: str | None
+    reviewer_latex_sha256: str | None
+    obsidian_markdown: str | None
+    obsidian_markdown_sha256: str | None
+    display_mode: str | None
+    render_confirmation: ValidatedRenderConfirmation | None
     note: str
     revision: int
     recorded_at_utc: datetime
     revision_id: str
+    schema_version: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -219,7 +237,7 @@ def _validate_assisted(
         "method": method,
         "proposal_path": "proposal.txt",
         "proposal_sha256": proposal_sha256,
-        "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
+        "schema_version": ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION,
         "status": "automated_unreviewed",
     }
     attempt_id = _id("equation-assisted-attempt", identity)
@@ -258,7 +276,12 @@ def _validate_revisions(
         if len(path.parts) != len(human_prefix) + 2:
             raise ReviewTreeValidationError("human revision path is unknown")
         match = _REVISION_DIRECTORY.fullmatch(path.parts[-2])
-        if match is None or path.name not in {"decision.json", "manifest.json"}:
+        if match is None or path.name not in {
+            "decision.json",
+            "manifest.json",
+            "obsidian-markdown.md",
+            "reviewer-latex.txt",
+        }:
             raise ReviewTreeValidationError("human revision path is unknown")
         revision = int(match.group(1))
         if not 1 <= revision <= MAX_EQUATION_REVIEW_REVISIONS:
@@ -270,14 +293,20 @@ def _validate_revisions(
     records: list[ValidatedHumanRevision] = []
     for revision in revisions:
         revision_root = candidate_root / f"human/revision-{revision:04d}"
-        expected_paths = {
+        required_paths = {
             revision_root / "decision.json",
             revision_root / "manifest.json",
         }
-        if grouped[revision] != expected_paths:
+        if not required_paths.issubset(grouped[revision]):
             raise ReviewTreeValidationError("human revision inventory is partial")
         decision, decision_bytes = _read_json(root, revision_root / "decision.json")
         manifest, _ = _read_json(root, revision_root / "manifest.json")
+        schema_version = manifest.get("schema_version")
+        if schema_version not in {
+            LEGACY_HUMAN_EQUATION_REVISION_SCHEMA_VERSION,
+            HUMAN_EQUATION_REVISION_SCHEMA_VERSION,
+        }:
+            raise ReviewTreeValidationError("human revision schema is unsupported")
         proposal_sha256 = manifest.get("assistance_proposal_sha256")
         if proposal_sha256 is not None and (
             not isinstance(proposal_sha256, str)
@@ -297,15 +326,183 @@ def _validate_revisions(
             empty=True,
         )
         recorded_at_utc = _parse_utc(manifest.get("recorded_at_utc"))
-        identity = {
-            **binding.as_dict(),
-            "assistance_proposal_sha256": proposal_sha256,
-            "contract_id": EQUATION_REVIEW_CONTRACT_ID,
-            "disposition": disposition,
-            "note": note,
-            "revision": revision,
-            "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
-        }
+        reviewer_latex: str | None = None
+        reviewer_latex_sha256: str | None = None
+        obsidian_markdown: str | None = None
+        obsidian_markdown_sha256: str | None = None
+        display_mode: str | None = None
+        render_confirmation: ValidatedRenderConfirmation | None = None
+        if schema_version == LEGACY_HUMAN_EQUATION_REVISION_SCHEMA_VERSION:
+            if grouped[revision] != required_paths:
+                raise ReviewTreeValidationError("legacy human inventory is invalid")
+            identity = {
+                **binding.as_dict(),
+                "assistance_proposal_sha256": proposal_sha256,
+                "contract_id": EQUATION_REVIEW_CONTRACT_ID,
+                "disposition": disposition,
+                "note": note,
+                "revision": revision,
+                "schema_version": schema_version,
+            }
+            artifacts = [
+                {
+                    "byte_size": len(decision_bytes),
+                    "relative_path": "decision.json",
+                    "sha256": hashlib.sha256(decision_bytes).hexdigest(),
+                }
+            ]
+        else:
+            display_mode_value = manifest.get("display_mode")
+            reviewer_latex_path = manifest.get("reviewer_latex_path")
+            reviewer_latex_sha256_value = manifest.get("reviewer_latex_sha256")
+            obsidian_markdown_path = manifest.get("obsidian_markdown_path")
+            obsidian_markdown_sha256_value = manifest.get("obsidian_markdown_sha256")
+            render_value = manifest.get("render_confirmation")
+            if disposition == "ACCEPT_TRANSCRIPTION":
+                expected_paths = required_paths | {
+                    revision_root / "obsidian-markdown.md",
+                    revision_root / "reviewer-latex.txt",
+                }
+                if grouped[revision] != expected_paths:
+                    raise ReviewTreeValidationError(
+                        "accepted human inventory is invalid"
+                    )
+                if (
+                    display_mode_value not in {"INLINE", "DISPLAY"}
+                    or reviewer_latex_path != "reviewer-latex.txt"
+                    or not isinstance(reviewer_latex_sha256_value, str)
+                    or obsidian_markdown_path != "obsidian-markdown.md"
+                    or not isinstance(obsidian_markdown_sha256_value, str)
+                ):
+                    raise ReviewTreeValidationError(
+                        "accepted representation binding is invalid"
+                    )
+                display_mode = str(display_mode_value)
+                reviewer_latex_bytes = _read_bytes(
+                    root,
+                    revision_root / "reviewer-latex.txt",
+                    MAX_ASSISTED_PROPOSAL_BYTES,
+                )
+                try:
+                    reviewer_latex = reviewer_latex_bytes.decode(
+                        "utf-8", errors="strict"
+                    )
+                except UnicodeDecodeError as error:
+                    raise ReviewTreeValidationError(
+                        "reviewer LaTeX is not valid UTF-8"
+                    ) from error
+                _bounded_text(
+                    reviewer_latex,
+                    "reviewer LaTeX",
+                    maximum=MAX_ASSISTED_PROPOSAL_CHARACTERS,
+                    empty=False,
+                )
+                reviewer_latex_sha256 = hashlib.sha256(reviewer_latex_bytes).hexdigest()
+                if reviewer_latex_sha256_value != reviewer_latex_sha256:
+                    raise ReviewTreeValidationError("reviewer LaTeX hash is invalid")
+                obsidian_markdown_bytes = _read_bytes(
+                    root,
+                    revision_root / "obsidian-markdown.md",
+                    MAX_ASSISTED_PROPOSAL_BYTES + 5,
+                )
+                try:
+                    obsidian_markdown = obsidian_markdown_bytes.decode(
+                        "utf-8", errors="strict"
+                    )
+                except UnicodeDecodeError as error:
+                    raise ReviewTreeValidationError(
+                        "Obsidian Markdown is not valid UTF-8"
+                    ) from error
+                expected_markdown = canonical_obsidian_markdown(
+                    reviewer_latex,
+                    display_mode,
+                )
+                if obsidian_markdown != expected_markdown:
+                    raise ReviewTreeValidationError(
+                        "Obsidian Markdown is not canonical"
+                    )
+                obsidian_markdown_sha256 = hashlib.sha256(
+                    obsidian_markdown_bytes
+                ).hexdigest()
+                if obsidian_markdown_sha256_value != obsidian_markdown_sha256:
+                    raise ReviewTreeValidationError("Obsidian Markdown hash is invalid")
+                render_confirmation = _validate_render_confirmation(
+                    render_value,
+                    reviewer_latex_sha256,
+                    obsidian_markdown_sha256,
+                )
+                artifacts = [
+                    {
+                        "byte_size": len(decision_bytes),
+                        "relative_path": "decision.json",
+                        "sha256": hashlib.sha256(decision_bytes).hexdigest(),
+                    },
+                    {
+                        "byte_size": len(obsidian_markdown_bytes),
+                        "relative_path": "obsidian-markdown.md",
+                        "sha256": obsidian_markdown_sha256,
+                    },
+                    {
+                        "byte_size": len(reviewer_latex_bytes),
+                        "relative_path": "reviewer-latex.txt",
+                        "sha256": reviewer_latex_sha256,
+                    },
+                ]
+            else:
+                if grouped[revision] != required_paths:
+                    raise ReviewTreeValidationError(
+                        "non-acceptance human inventory is invalid"
+                    )
+                if any(
+                    value is not None
+                    for value in (
+                        display_mode_value,
+                        reviewer_latex_path,
+                        reviewer_latex_sha256_value,
+                        obsidian_markdown_path,
+                        obsidian_markdown_sha256_value,
+                        render_value,
+                    )
+                ):
+                    raise ReviewTreeValidationError(
+                        "non-acceptance carries accepted representations"
+                    )
+                artifacts = [
+                    {
+                        "byte_size": len(decision_bytes),
+                        "relative_path": "decision.json",
+                        "sha256": hashlib.sha256(decision_bytes).hexdigest(),
+                    }
+                ]
+            render_identity = (
+                None
+                if render_confirmation is None
+                else {
+                    "renderer_id": render_confirmation.renderer_id,
+                    "renderer_version": render_confirmation.renderer_version,
+                    "rendered_obsidian_markdown_sha256": (
+                        render_confirmation.rendered_obsidian_markdown_sha256
+                    ),
+                    "rendered_reviewer_latex_sha256": (
+                        render_confirmation.rendered_reviewer_latex_sha256
+                    ),
+                }
+            )
+            identity = {
+                **binding.as_dict(),
+                "assistance_proposal_sha256": proposal_sha256,
+                "contract_id": EQUATION_REVIEW_CONTRACT_ID,
+                "display_mode": display_mode_value,
+                "disposition": disposition,
+                "note": note,
+                "obsidian_markdown_path": obsidian_markdown_path,
+                "obsidian_markdown_sha256": obsidian_markdown_sha256_value,
+                "render_confirmation": render_identity,
+                "reviewer_latex_path": reviewer_latex_path,
+                "reviewer_latex_sha256": reviewer_latex_sha256_value,
+                "revision": revision,
+                "schema_version": schema_version,
+            }
         revision_id = _id("equation-human-revision", identity)
         expected_decision = {
             **identity,
@@ -314,13 +511,7 @@ def _validate_revisions(
         }
         expected_manifest = {
             **expected_decision,
-            "artifact_files": [
-                {
-                    "byte_size": len(decision_bytes),
-                    "relative_path": "decision.json",
-                    "sha256": hashlib.sha256(decision_bytes).hexdigest(),
-                }
-            ],
+            "artifact_files": artifacts,
             "status": "human-reviewed",
         }
         if decision != expected_decision or manifest != expected_manifest:
@@ -329,13 +520,64 @@ def _validate_revisions(
             ValidatedHumanRevision(
                 disposition=disposition,
                 assistance_proposal_sha256=proposal_sha256,
+                reviewer_latex=reviewer_latex,
+                reviewer_latex_sha256=reviewer_latex_sha256,
+                obsidian_markdown=obsidian_markdown,
+                obsidian_markdown_sha256=obsidian_markdown_sha256,
+                display_mode=display_mode,
+                render_confirmation=render_confirmation,
                 note=str(note),
                 revision=revision,
                 recorded_at_utc=recorded_at_utc,
                 revision_id=revision_id,
+                schema_version=int(schema_version),
             )
         )
     return tuple(records)
+
+
+def canonical_obsidian_markdown(reviewer_latex: str, display_mode: str) -> str:
+    """Derive the only accepted Obsidian Markdown wrapper representation."""
+    if display_mode == "INLINE":
+        return f"${reviewer_latex}$"
+    if display_mode == "DISPLAY":
+        return f"$$\n{reviewer_latex}\n$$"
+    raise ValueError("display mode is unsupported")
+
+
+def _validate_render_confirmation(
+    value: object,
+    reviewer_latex_sha256: str,
+    obsidian_markdown_sha256: str,
+) -> ValidatedRenderConfirmation:
+    if not isinstance(value, dict) or set(value) != {
+        "renderer_id",
+        "renderer_version",
+        "rendered_obsidian_markdown_sha256",
+        "rendered_reviewer_latex_sha256",
+    }:
+        raise ReviewTreeValidationError("render confirmation is invalid")
+    renderer_id = value.get("renderer_id")
+    renderer_version = value.get("renderer_version")
+    rendered_reviewer_latex_sha256 = value.get("rendered_reviewer_latex_sha256")
+    rendered_obsidian_markdown_sha256 = value.get("rendered_obsidian_markdown_sha256")
+    _bounded_text(renderer_id, "renderer id", maximum=500, empty=False)
+    _bounded_text(renderer_version, "renderer version", maximum=500, empty=False)
+    if (
+        not isinstance(rendered_reviewer_latex_sha256, str)
+        or _SHA256.fullmatch(rendered_reviewer_latex_sha256) is None
+        or rendered_reviewer_latex_sha256 != reviewer_latex_sha256
+        or not isinstance(rendered_obsidian_markdown_sha256, str)
+        or _SHA256.fullmatch(rendered_obsidian_markdown_sha256) is None
+        or rendered_obsidian_markdown_sha256 != obsidian_markdown_sha256
+    ):
+        raise ReviewTreeValidationError("rendered representation hash is invalid")
+    return ValidatedRenderConfirmation(
+        renderer_id=str(renderer_id),
+        renderer_version=str(renderer_version),
+        rendered_reviewer_latex_sha256=rendered_reviewer_latex_sha256,
+        rendered_obsidian_markdown_sha256=rendered_obsidian_markdown_sha256,
+    )
 
 
 def _read_bytes(root: AuthorizedRoot, path: PurePosixPath, maximum: int) -> bytes:
