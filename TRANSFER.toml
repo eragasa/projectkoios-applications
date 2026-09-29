@@ -87,10 +87,10 @@ role = "PDF corpus discovery, placeholder evidence, source rebinding, and author
 [dependencies.ingestion]
 repository = "https://github.com/eragasa/projectkoios-ingestion"
 requirement = "projectkoios-ingestion[pdf]==0.0.0"
-reviewed_commit = "024162ca65f4552c274b29e30462888d4379f2fc"
-reviewed_tree = "f093adbc318302fe02854708339df18fd1dcb263"
-role = "Bounded pure-byte PDF extraction artifacts, rendering, and local Ollama multimodal evidence"
-semantic_replay_parser_available = false
+reviewed_commit = "be60640bec4fe15cc88b24161545eb1027ffbd2e"
+reviewed_tree = "d386a1744f79463fd7cd0b3087ee5fc361e0f7d5"
+role = "Bounded pure-byte PDF extraction artifacts, strict semantic replay, rendering, and local Ollama multimodal evidence"
+semantic_replay_parser_available = true
 
 [[provider_handoffs]]
 provider = "vasp"

@@ -1,0 +1,20 @@
+{
+  "complete": {
+    "display_name": "Synthetic Transcript Display",
+    "document_id": "synthetic-transcript",
+    "page_texts": [
+      "First page exact text.",
+      "",
+      "Third page exact text.\n\nSecond native block."
+    ]
+  },
+  "incomplete": {
+    "remove_artifact": "ingestion/pages/page-0002.txt"
+  },
+  "malformed": {
+    "replace_artifact": "ingestion/extraction.json"
+  },
+  "unsupported": {
+    "package_schema_version": 1
+  }
+}

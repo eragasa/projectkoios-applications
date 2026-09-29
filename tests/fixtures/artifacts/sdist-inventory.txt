@@ -215,6 +215,8 @@ projectkoios_applications-0.1.0.dev0/examples/projectkoios/applications/pw_dft_s
 projectkoios_applications-0.1.0.dev0/examples/projectkoios/applications/pw_dft_scf/workflow/runtime.py
 projectkoios_applications-0.1.0.dev0/examples/projectkoios/applications/pw_dft_scf/workflow/workflow.py
 projectkoios_applications-0.1.0.dev0/pyproject.toml
+projectkoios_applications-0.1.0.dev0/scripts
+projectkoios_applications-0.1.0.dev0/scripts/verify_document_transcript.sh
 projectkoios_applications-0.1.0.dev0/setup.cfg
 projectkoios_applications-0.1.0.dev0/src
 projectkoios_applications-0.1.0.dev0/src/python
@@ -234,6 +236,7 @@ projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_co
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/review_tree.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/roots.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/runner.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/transcript.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pw_dft_relaxation
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pw_dft_relaxation/__init__.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pw_dft_relaxation/composition.py
@@ -283,6 +286,8 @@ projectkoios_applications-0.1.0.dev0/tests/examples/projectkoios/applications/pw
 projectkoios_applications-0.1.0.dev0/tests/fixtures
 projectkoios_applications-0.1.0.dev0/tests/fixtures/artifacts
 projectkoios_applications-0.1.0.dev0/tests/fixtures/artifacts/sdist-inventory.txt
+projectkoios_applications-0.1.0.dev0/tests/fixtures/pdf_corpus_ingestion
+projectkoios_applications-0.1.0.dev0/tests/fixtures/pdf_corpus_ingestion/document-transcript-cases.json
 projectkoios_applications-0.1.0.dev0/tests/fixtures/pw_dft_scf
 projectkoios_applications-0.1.0.dev0/tests/fixtures/pw_dft_scf/campaign-projections.json
 projectkoios_applications-0.1.0.dev0/tests/fixtures/pw_dft_scf/qe-retained-convergence-normalized.json
@@ -298,6 +303,7 @@ projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__review_queue.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__roots.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__runner.py
+projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__transcript.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pw_dft_relaxation
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pw_dft_relaxation/composition
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pw_dft_relaxation/composition/test__PwDftRelaxationComposer.py

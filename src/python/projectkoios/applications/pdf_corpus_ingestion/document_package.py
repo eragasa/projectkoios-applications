@@ -33,7 +33,8 @@ from .review_tree import (
 )
 
 DOCUMENT_PACKAGE_CONTRACT_ID = "projectkoios.applications.pdf-corpus-document-package"
-DOCUMENT_PACKAGE_SCHEMA_VERSION = 1
+DOCUMENT_PACKAGE_SCHEMA_VERSION = 2
+DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION = 2
 DOCUMENT_PACKAGE_MANIFEST = PurePosixPath("document-manifest.json")
 MAX_DOCUMENT_PACKAGE_ARTIFACTS = 10_000
 MAX_DOCUMENT_PACKAGE_BYTES = 512_000_000
@@ -197,6 +198,7 @@ class DeterministicDocumentPackage:
             or manifest_value.get("package_id") != self.package_id
             or manifest_value.get("document_key") != self.document_key
             or manifest_value.get("source_sha256") != self.source_sha256
+            or manifest_value.get("schema_version") != DOCUMENT_PACKAGE_SCHEMA_VERSION
             or manifest_value.get("status") != "deterministic-complete"
         ):
             raise DocumentPackageError("document manifest is inconsistent")
@@ -270,14 +272,32 @@ def build_deterministic_document_package(
             _identified(
                 "document-ingestion-manifest",
                 {
+                    "artifact_limits": {
+                        "max_artifacts": extraction.artifact_limits.max_artifacts,
+                        "max_page_text_bytes": (
+                            extraction.artifact_limits.max_page_text_bytes
+                        ),
+                        "max_raw_extraction_bytes": (
+                            extraction.artifact_limits.max_raw_extraction_bytes
+                        ),
+                        "max_total_artifact_bytes": (
+                            extraction.artifact_limits.max_total_artifact_bytes
+                        ),
+                    },
                     "artifact_paths": ingestion_paths,
                     "document_key": document_key,
                     "extraction_bundle_id": extraction.bundle_id,
+                    "extraction_configuration": {
+                        "low_text_character_threshold": (
+                            extraction.configuration.low_text_character_threshold
+                        ),
+                        "maximum_pages": extraction.configuration.maximum_pages,
+                    },
                     "extraction_configuration_digest": (
                         extraction.configuration.configuration_digest
                     ),
                     "extraction_manifest_id": (extraction.result.manifest.manifest_id),
-                    "schema_version": 1,
+                    "schema_version": DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION,
                     "source_sha256": source.content_hash,
                     "status": "deterministic-complete",
                 },

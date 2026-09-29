@@ -46,12 +46,12 @@ that later preflight rejects; the application does not claim atomic directory
 publication. Replay of one completed publication verifies the strict
 application manifest, bounded canonical
 page/status/path/identity summaries, and exact artifact path, size, and SHA-256
-inventory; it never reruns Ollama. It does not claim to
-semantically reconstruct ingestion-owned raw, renderer, or Ollama JSON because
-those owners do not yet expose read validators. This detects stale or accidental
-byte drift, not an actor able to rewrite both artifacts and manifest identity.
-An ingestion-owned semantic replay parser is a follow-up, not application code.
-Partial or different output fails closed. Pending, deferred, and failed page
+inventory; it never reruns Ollama. The content-addressed corpus runner still does
+not semantically reconstruct renderer or Ollama JSON. Ingestion now exposes a
+strict public parser for its PDF extraction artifact bundle; only the schema-2
+document-package transcript projection below consumes that seam. Byte replay
+detects stale or accidental drift, not an actor able to rewrite both artifacts
+and manifest identity. Partial or different output fails closed. Pending, deferred, and failed page
 resolution is immutable terminal-incomplete evidence for that plan/output; retry
 requires a newly composed plan and fresh output root. It is never reported as
 full processing completion.
@@ -86,9 +86,17 @@ owner evidence or accept any proposal:
 bytes that exactly match an existing `PdfExtractionArtifactBundle`, invokes the
 public deterministic equation detector, retains its complete canonical result,
 and externalizes each exact rendered candidate image with source and processor
-links. The application index is navigational evidence; candidates remain
-`proposed` or `ambiguous`. Assisted, human, and transcript stages are explicitly
-`not-started` in the initial deterministic publication.
+links. Schema 2 of both the document completion contract and its application
+ingestion manifest persists the complete canonical public
+`PdfExtractionConfiguration` and `PdfExtractionArtifactLimits` values alongside
+their configuration digest, bundle identity, source identity, and exact artifact
+inventory. This makes owner replay self-contained without interpreting raw
+extraction JSON. Schema-1 packages do not contain enough evidence to revalidate
+the bundle identity and are rejected; they are never upgraded or repaired. The
+application index is navigational evidence; candidates remain `proposed` or
+`ambiguous`. Assisted and human stages are explicitly `not-started` in the
+initial deterministic publication. The transcript stage records package
+processing state, not human review or acceptance.
 
 `publish_deterministic_document_package` exclusively creates the final
 `<document-key>` directory through `AuthorizedRoot`, writes the completion
@@ -104,6 +112,39 @@ partial, or different output, fail closed and are not repaired.
 The current corpus runner is not yet switched from its reviewed
 content-addressed layout; wiring document keys, corpus completion, and the CLI
 is a later application-composition slice.
+
+## Exact document transcript projection
+
+`project_document_transcript(*, document_root=...)` is the narrow read-only seam
+for one explicitly supplied local `AuthorizedRoot`. It never searches a corpus
+or accepts a document path or ID. It first verifies the schema-2 completion
+identity and every bounded inventoried byte, then validates the application
+owned ingestion manifest. It reconstructs the persisted public ingestion
+configuration and artifact-limit value objects and calls
+`read_pdf_extraction_transcript` with the verified expected bundle ID and source
+SHA-256/byte size. Only that ingestion-owned parser interprets raw extraction
+JSON. The operation performs no write, network, model, OCR, extraction, or
+semantic cleanup.
+
+The frozen path-free `DocumentTranscriptProjection` carries a stable content
+identity, package/document/source identities, exact owner metadata, display name,
+`AUTOMATED_UNREVIEWED` status, physical-page count, and a tuple of
+`DocumentTranscriptPage`. Display name is the exact nonempty PDF `title`
+metadata value when present and otherwise the document ID; it is never truncated
+or inferred from a path. Every physical page is retained, including an exact
+empty string. Pages are complete and ordered with contiguous zero-based
+`page_index`, one-based `physical_page`, stable owner page identity, nullable
+exact printed label, and exact native text-block content joined by the owner
+with two LF characters. Page count is positive and equals tuple length.
+
+Missing completion or owner artifacts raise
+`DocumentTranscriptIncompleteError`; unreadable evidence raises
+`DocumentTranscriptUnavailableError`; invalid package, binding, bounds, or owner
+evidence raises `DocumentTranscriptMalformedError`. Schema 1 raises the narrower
+`DocumentTranscriptUnsupportedPackageError`, which is also malformed evidence.
+No exception returns an artifact path. Root selection, document lookup, API
+routing/authentication, HTTP status mapping, list behavior, and presentation
+remain consumer concerns.
 
 ## Append-only equation review
 
@@ -264,6 +305,6 @@ are imported without it.
 Development provenance is pinned to references commit/tree
 `b7581cb5f8a619883ecd73ed1d9354b85e5f57fd` /
 `41c0165e2d4cb73ca41e2bb2acace1b77b7544d9` and ingestion commit/tree
-`024162ca65f4552c274b29e30462888d4379f2fc` /
-`f093adbc318302fe02854708339df18fd1dcb263`. These are local candidate
+`be60640bec4fe15cc88b24161545eb1027ffbd2e` /
+`d386a1744f79463fd7cd0b3087ee5fc361e0f7d5`. These are local candidate
 identities, not publication or version-compatibility promises.

@@ -2,6 +2,7 @@
 
 from .composition import compose_pdf_corpus_ingestion_plan
 from .document_package import (
+    DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION,
     DOCUMENT_PACKAGE_CONTRACT_ID,
     DOCUMENT_PACKAGE_MANIFEST,
     DOCUMENT_PACKAGE_SCHEMA_VERSION,
@@ -63,12 +64,29 @@ from .review_queue import (
     EquationReviewQueueProjection,
     project_equation_review_queue,
 )
+from .transcript import (
+    DOCUMENT_TRANSCRIPT_CONTRACT_ID,
+    DOCUMENT_TRANSCRIPT_SCHEMA_VERSION,
+    MAX_DOCUMENT_TRANSCRIPT_DISPLAY_NAME_BYTES,
+    DocumentTranscriptError,
+    DocumentTranscriptIncompleteError,
+    DocumentTranscriptMalformedError,
+    DocumentTranscriptPage,
+    DocumentTranscriptProjection,
+    DocumentTranscriptStatus,
+    DocumentTranscriptUnavailableError,
+    DocumentTranscriptUnsupportedPackageError,
+    project_document_transcript,
+)
 
 __all__ = [
+    "DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION",
     "DOCUMENT_PACKAGE_CONTRACT_ID",
     "DOCUMENT_PACKAGE_MANIFEST",
     "ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION",
     "DOCUMENT_PACKAGE_SCHEMA_VERSION",
+    "DOCUMENT_TRANSCRIPT_CONTRACT_ID",
+    "DOCUMENT_TRANSCRIPT_SCHEMA_VERSION",
     "EQUATION_REVIEW_CONTRACT_ID",
     "EQUATION_REVIEW_QUEUE_CONTRACT_ID",
     "EQUATION_REVIEW_QUEUE_SCHEMA_VERSION",
@@ -76,6 +94,7 @@ __all__ = [
     "HUMAN_EQUATION_REVISION_SCHEMA_VERSION",
     "MAX_APPLICATION_PDF_BYTES",
     "MAX_APPLICATION_PDF_PAGES",
+    "MAX_DOCUMENT_TRANSCRIPT_DISPLAY_NAME_BYTES",
     "MAX_EQUATION_REVIEW_QUEUE_CANDIDATES",
     "MAX_TRANCHE_ITEMS",
     "AssistedEquationAttempt",
@@ -84,6 +103,14 @@ __all__ = [
     "DocumentPackageError",
     "DocumentPackagePublicationAction",
     "DocumentPackagePublicationError",
+    "DocumentTranscriptError",
+    "DocumentTranscriptIncompleteError",
+    "DocumentTranscriptMalformedError",
+    "DocumentTranscriptPage",
+    "DocumentTranscriptProjection",
+    "DocumentTranscriptStatus",
+    "DocumentTranscriptUnavailableError",
+    "DocumentTranscriptUnsupportedPackageError",
     "EquationDisplayMode",
     "EquationRenderConfirmation",
     "EquationReviewConcurrencyError",
@@ -117,6 +144,7 @@ __all__ = [
     "build_deterministic_document_package",
     "compose_pdf_corpus_ingestion_plan",
     "load_latest_human_equation_revision",
+    "project_document_transcript",
     "project_equation_review_queue",
     "publish_assisted_equation_attempt",
     "publish_deterministic_document_package",

@@ -65,6 +65,17 @@ def test_capability_has_no_owner_private_cli_or_process_imports() -> None:
         assert not any(name in text for name in forbidden_names), path
 
 
+def test_transcript_projection_uses_only_the_public_owner_replay_seam() -> None:
+    text = (_PACKAGE / "transcript.py").read_text()
+    assert "read_pdf_extraction_transcript" in text
+    assert "deserialize_extraction_result" not in text
+    assert "projectkoios.ingestion.cache" not in text
+    assert "os.walk(" not in text
+    assert "Path.home(" not in text
+    assert "subprocess" not in text
+    assert "socket" not in text
+
+
 def test_runner_uses_bound_filesystem_primitives() -> None:
     text = (_PACKAGE / "runner.py").read_text()
     assert "staged_path.read_bytes(" not in text

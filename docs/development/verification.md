@@ -20,6 +20,28 @@ extraction task's no-install rule, the wheel is then extracted into an isolated
 temporary import root and imported with the separately provided committed
 dependency source.
 
+For the schema-2 document transcript slice, run the deterministic owner script
+against repositories that contain the exact pinned dependency Git objects:
+
+```bash
+PROJECTKOIOS_INGESTION_REPOSITORY=/absolute/path/to/projectkoios-ingestion \
+PROJECTKOIOS_REFERENCES_REPOSITORY=/absolute/path/to/projectkoios-references \
+  scripts/verify_document_transcript.sh
+```
+
+The script accepts no positional arguments and optionally accepts an explicit
+`PYTHON_BIN`. It verifies ingestion commit/tree
+`be60640bec4fe15cc88b24161545eb1027ffbd2e` /
+`d386a1744f79463fd7cd0b3087ee5fc361e0f7d5` and references commit/tree
+`b7581cb5f8a619883ecd73ed1d9354b85e5f57fd` /
+`41c0165e2d4cb73ca41e2bb2acace1b77b7544d9`, archives them into an ephemeral
+private directory, and runs focused tests, lint, formatting, and strict typing.
+It stops before tests if an input is absent, relative, the exact object/tree is
+unavailable, or Python is not 3.14. It performs no install, network call, source
+checkout, or repository write; the temporary archive is removed on exit. Reuse
+is limited to this repository's schema-2 package and transcript seam and is not
+a package migration, corpus discovery, API smoke test, or full-suite substitute.
+
 The cross-provider baseline is simulations commit
 `24dffe10c29e60afcd5fe07aaacb84921a41a43d`, tree
 `b7897a05de39072126e6162ce6e8b8fb25be5f31`. Archive that exact Git object for

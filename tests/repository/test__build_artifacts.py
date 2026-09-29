@@ -24,7 +24,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _EPOCH = "1758931200"
 _SDIST_INVENTORY = _ROOT / "tests/fixtures/artifacts/sdist-inventory.txt"
 _SDIST_INVENTORY_SHA256 = (
-    "e4b6292bfd9e9060efbc8726781705055bb03d23caa89c31563bc2145b5634ca"
+    "ecfe77ade9caedc96d74c35ac9600ae3a44ffcae98946ab1e744eeea285f1638"
 )
 _WHEEL_INVENTORY = (
     "projectkoios/applications/__init__.py",
@@ -41,6 +41,7 @@ _WHEEL_INVENTORY = (
     "projectkoios/applications/pdf_corpus_ingestion/review_tree.py",
     "projectkoios/applications/pdf_corpus_ingestion/roots.py",
     "projectkoios/applications/pdf_corpus_ingestion/runner.py",
+    "projectkoios/applications/pdf_corpus_ingestion/transcript.py",
     "projectkoios/applications/pw_dft_relaxation/__init__.py",
     "projectkoios/applications/pw_dft_relaxation/composition.py",
     "projectkoios/applications/pw_dft_relaxation/workflow/__init__.py",
@@ -239,10 +240,12 @@ with tempfile.TemporaryDirectory() as directory:
         {core!r},
     ]
     from projectkoios.applications.pdf_corpus_ingestion import (
+        DocumentTranscriptProjection,
         EquationDisplayMode,
         EquationRenderConfirmation,
         EquationReviewEvidenceBinding,
         PdfCorpusIngestionPlan,
+        project_document_transcript,
         project_equation_review_queue,
     )
     from projectkoios.applications.pw_dft_scf.replay import PwDftScfConvergenceReplayer
@@ -250,10 +253,12 @@ with tempfile.TemporaryDirectory() as directory:
         PwDftRelaxationComposer,
     )
     assert (
-        EquationDisplayMode
+        DocumentTranscriptProjection
+        and EquationDisplayMode
         and EquationRenderConfirmation
         and EquationReviewEvidenceBinding
         and PdfCorpusIngestionPlan
+        and project_document_transcript
         and project_equation_review_queue
         and PwDftScfConvergenceReplayer
         and PwDftRelaxationComposer
@@ -295,17 +300,21 @@ with tempfile.TemporaryDirectory() as directory:
     ]
     sys.meta_path.insert(0, BlockScientificImports())
     from projectkoios.applications.pdf_corpus_ingestion import (
+        DocumentTranscriptProjection,
         EquationDisplayMode,
         EquationRenderConfirmation,
         EquationReviewEvidenceBinding,
         PdfCorpusIngestionPlan,
+        project_document_transcript,
         project_equation_review_queue,
     )
     assert (
-        EquationDisplayMode
+        DocumentTranscriptProjection
+        and EquationDisplayMode
         and EquationRenderConfirmation
         and EquationReviewEvidenceBinding
         and PdfCorpusIngestionPlan
+        and project_document_transcript
         and project_equation_review_queue
     )
     assert "projectkoios.simulations" not in sys.modules

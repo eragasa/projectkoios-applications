@@ -21,7 +21,9 @@ from projectkoios.applications.pdf_corpus_ingestion import (
     publish_assisted_equation_attempt,
 )
 from projectkoios.applications.pdf_corpus_ingestion.document_package import (
+    DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION,
     DOCUMENT_PACKAGE_MANIFEST,
+    DOCUMENT_PACKAGE_SCHEMA_VERSION,
     DeterministicDocumentPackage,
     DocumentPackageArtifact,
     DocumentPackageError,
@@ -78,6 +80,26 @@ def test_builds_document_centric_deterministic_equation_package() -> None:
     assert PurePosixPath("ingestion/extraction.json") in artifacts
     assert PurePosixPath("ingestion/pages/page-0001.txt") in artifacts
     assert PurePosixPath("ingestion/manifest.json") in artifacts
+    ingestion_manifest = json.loads(
+        artifacts[PurePosixPath("ingestion/manifest.json")].content
+    )
+    assert ingestion_manifest["schema_version"] == (
+        DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION
+    )
+    assert ingestion_manifest["extraction_configuration"] == {
+        "low_text_character_threshold": 0,
+        "maximum_pages": 10,
+    }
+    assert ingestion_manifest["artifact_limits"] == {
+        "max_artifacts": extraction.artifact_limits.max_artifacts,
+        "max_page_text_bytes": extraction.artifact_limits.max_page_text_bytes,
+        "max_raw_extraction_bytes": (
+            extraction.artifact_limits.max_raw_extraction_bytes
+        ),
+        "max_total_artifact_bytes": (
+            extraction.artifact_limits.max_total_artifact_bytes
+        ),
+    }
     assert PurePosixPath("content/equations/deterministic/detection.json") in artifacts
     assert PurePosixPath("content/equations/index.json") in artifacts
     assert PurePosixPath("content/equations/manifest.json") in artifacts
@@ -93,6 +115,7 @@ def test_builds_document_centric_deterministic_equation_package() -> None:
 
     completion = json.loads(package.artifacts[-1].content)
     assert completion["status"] == "deterministic-complete"
+    assert completion["schema_version"] == DOCUMENT_PACKAGE_SCHEMA_VERSION
     assert completion["stages"] == {
         "assisted": "not-started",
         "equation_detection": "deterministic-complete",
