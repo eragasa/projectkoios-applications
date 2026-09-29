@@ -3,12 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path, PurePosixPath
 
 import pytest
 
 from projectkoios.applications.pdf_corpus_ingestion import (
+    EQUATION_REVIEW_SCHEMA_VERSION,
     AssistedEquationAttempt,
     EquationReviewConcurrencyError,
     EquationReviewDisposition,
@@ -30,7 +31,7 @@ from projectkoios.references import AuthorizedRoot, RootStorageClass
 
 _DOCUMENT = "pizzi2020"
 _CANDIDATE = "pizzi2020:eq:001"
-_REVIEWED_AT = datetime(2026, 9, 28, 12, 0, tzinfo=UTC)
+_RECORDED_AT = datetime(2026, 9, 28, 12, 0, tzinfo=UTC)
 
 
 def _canonical(value: object) -> bytes:
@@ -223,7 +224,7 @@ def _replace_assisted_attempt(
         "proposal_path": "proposal.txt",
         "proposal_sha256": proposal_sha256,
         "region_image_sha256": binding.region_image_sha256,
-        "schema_version": 1,
+        "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
         "source_sha256": binding.source_sha256,
         "status": "automated_unreviewed",
     }
@@ -255,7 +256,7 @@ def _request(
         EquationReviewDisposition.ACCEPT_TRANSCRIPTION
     ),
     note: str = "Checked against the exact displayed region.",
-    reviewed_at: datetime = _REVIEWED_AT,
+    recorded_at: datetime = _RECORDED_AT,
     expected_previous_revision: int = 0,
 ) -> HumanEquationRevisionRequest:
     return HumanEquationRevisionRequest(
@@ -263,7 +264,7 @@ def _request(
         disposition=disposition,
         assistance_proposal_sha256=proposal_sha256,
         note=note,
-        reviewed_at_utc=reviewed_at,
+        recorded_at_utc=recorded_at,
         expected_previous_revision=expected_previous_revision,
     )
 
@@ -308,7 +309,12 @@ def test_human_acceptance_is_a_separate_exactly_bound_revision(
 
     assert load_latest_human_equation_revision(binding, document_root=root) is None
     first = append_human_equation_revision(request, document_root=root)
-    replay = append_human_equation_revision(request, document_root=root)
+    retry = _request(
+        binding,
+        attempt.proposal_sha256,
+        recorded_at=_RECORDED_AT + timedelta(hours=1),
+    )
+    replay = append_human_equation_revision(retry, document_root=root)
     review_root = _review_root(tmp_path)
     decision = json.loads(
         (review_root / "human/revision-0001/decision.json").read_text()
@@ -320,6 +326,8 @@ def test_human_acceptance_is_a_separate_exactly_bound_revision(
     assert first.action is EquationReviewPublicationAction.CREATE
     assert replay.action is EquationReviewPublicationAction.UNCHANGED
     assert first.revision == replay.revision
+    assert replay.revision.recorded_at_utc == _RECORDED_AT
+    assert replay.revision.recorded_at_utc != retry.recorded_at_utc
     assert (
         load_latest_human_equation_revision(
             binding,
@@ -334,11 +342,38 @@ def test_human_acceptance_is_a_separate_exactly_bound_revision(
     assert decision["candidate_evidence_sha256"] == (binding.candidate_evidence_sha256)
     assert decision["region_image_sha256"] == binding.region_image_sha256
     assert decision["note"] == request.note
-    assert decision["updated_at_utc"] == "2026-09-28T12:00:00.000000Z"
+    assert decision["recorded_at_utc"] == "2026-09-28T12:00:00.000000Z"
     assert assistance["status"] == "automated_unreviewed"
 
 
-def test_human_revisions_are_monotonic_and_preserve_prior_bytes(
+def test_recorded_time_does_not_change_stable_revision_identity(
+    tmp_path: Path,
+) -> None:
+    first_root, first_binding = _document_root(tmp_path / "first")
+    second_root, second_binding = _document_root(tmp_path / "second")
+    first_attempt = _attempt(first_binding)
+    second_attempt = _attempt(second_binding)
+    publish_assisted_equation_attempt(first_attempt, document_root=first_root)
+    publish_assisted_equation_attempt(second_attempt, document_root=second_root)
+
+    first = append_human_equation_revision(
+        _request(first_binding, first_attempt.proposal_sha256),
+        document_root=first_root,
+    ).revision
+    second = append_human_equation_revision(
+        _request(
+            second_binding,
+            second_attempt.proposal_sha256,
+            recorded_at=_RECORDED_AT + timedelta(days=1),
+        ),
+        document_root=second_root,
+    ).revision
+
+    assert first.revision_id == second.revision_id
+    assert first.recorded_at_utc != second.recorded_at_utc
+
+
+def test_human_history_orders_by_revision_not_recorded_time(
     tmp_path: Path,
 ) -> None:
     root, binding = _document_root(tmp_path)
@@ -357,7 +392,7 @@ def test_human_revisions_are_monotonic_and_preserve_prior_bytes(
             None,
             disposition=EquationReviewDisposition.REVISION_REQUIRED,
             note="The displayed region needs a corrected transcription.",
-            reviewed_at=_REVIEWED_AT + timedelta(minutes=1),
+            recorded_at=_RECORDED_AT - timedelta(days=1),
             expected_previous_revision=1,
         ),
         document_root=root,
@@ -365,6 +400,7 @@ def test_human_revisions_are_monotonic_and_preserve_prior_bytes(
 
     assert first.revision.revision == 1
     assert second.revision.revision == 2
+    assert second.revision.recorded_at_utc < first.revision.recorded_at_utc
     assert (
         load_latest_human_equation_revision(
             binding,
@@ -394,7 +430,7 @@ def test_all_historical_assisted_references_are_revalidated(
             None,
             disposition=EquationReviewDisposition.REVISION_REQUIRED,
             note="Later unassisted revision.",
-            reviewed_at=_REVIEWED_AT + timedelta(minutes=1),
+            recorded_at=_RECORDED_AT + timedelta(minutes=1),
             expected_previous_revision=1,
         ),
         document_root=root,
@@ -414,7 +450,7 @@ def test_all_historical_assisted_references_are_revalidated(
                 None,
                 disposition=EquationReviewDisposition.REJECT_CANDIDATE,
                 note="A third unassisted revision must not hide corruption.",
-                reviewed_at=_REVIEWED_AT + timedelta(minutes=2),
+                recorded_at=_RECORDED_AT + timedelta(minutes=2),
                 expected_previous_revision=2,
             ),
             document_root=root,
@@ -611,7 +647,18 @@ def test_rejects_invalid_time_and_unbound_acceptance(tmp_path: Path) -> None:
     publish_assisted_equation_attempt(attempt, document_root=root)
 
     with pytest.raises(EquationReviewError, match="timezone-aware UTC"):
-        _request(binding, attempt.proposal_sha256, reviewed_at=datetime(2026, 1, 1))
+        _request(binding, attempt.proposal_sha256, recorded_at=datetime(2026, 1, 1))
+    with pytest.raises(EquationReviewError, match="timezone-aware UTC"):
+        _request(
+            binding,
+            attempt.proposal_sha256,
+            recorded_at=datetime(
+                2026,
+                1,
+                1,
+                tzinfo=timezone(timedelta(hours=1)),
+            ),
+        )
     with pytest.raises(EquationReviewError, match="requires"):
         _request(binding, None)
 
@@ -629,12 +676,17 @@ def test_classifies_completed_revision_races(
     publish_assisted_equation_attempt(attempt, document_root=root)
     request = _request(binding, attempt.proposal_sha256)
     competing = (
-        request
+        _request(
+            binding,
+            attempt.proposal_sha256,
+            recorded_at=_RECORDED_AT + timedelta(minutes=5),
+        )
         if same_revision
         else _request(
             binding,
             attempt.proposal_sha256,
             note="Different concurrent decision.",
+            recorded_at=_RECORDED_AT + timedelta(minutes=5),
         )
     )
     triggered = False
@@ -675,6 +727,8 @@ def test_classifies_completed_revision_races(
         result = append_human_equation_revision(request, document_root=root)
         assert result.action is EquationReviewPublicationAction.UNCHANGED
         assert result.revision.note == request.note
+        assert result.revision.recorded_at_utc == competing.recorded_at_utc
+        assert result.revision.recorded_at_utc != request.recorded_at_utc
     else:
         with pytest.raises(EquationReviewConcurrencyError, match="different"):
             append_human_equation_revision(request, document_root=root)

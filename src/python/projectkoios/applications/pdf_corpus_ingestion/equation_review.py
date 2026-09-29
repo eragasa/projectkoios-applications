@@ -190,13 +190,13 @@ class AssistedEquationAttempt:
 
 @dataclass(frozen=True, slots=True)
 class HumanEquationRevisionRequest:
-    """Caller-owned inputs for one optimistic append operation."""
+    """Trusted-adapter inputs for one optimistic append operation."""
 
     binding: EquationReviewEvidenceBinding
     disposition: EquationReviewDisposition
     assistance_proposal_sha256: str | None
     note: str
-    reviewed_at_utc: datetime
+    recorded_at_utc: datetime
     expected_previous_revision: int
 
     def __post_init__(self) -> None:
@@ -222,7 +222,7 @@ class HumanEquationRevisionRequest:
             maximum=MAX_EQUATION_REVIEW_NOTE_CHARACTERS,
             empty=True,
         )
-        _utc_text(self.reviewed_at_utc)
+        _utc_text(self.recorded_at_utc)
         if (
             type(self.expected_previous_revision) is not int
             or not 0 <= self.expected_previous_revision < MAX_EQUATION_REVIEW_REVISIONS
@@ -239,7 +239,7 @@ class HumanEquationRevision:
     assistance_proposal_sha256: str | None
     note: str
     revision: int
-    updated_at_utc: datetime
+    recorded_at_utc: datetime
     revision_id: str
 
     def __post_init__(self) -> None:
@@ -278,15 +278,15 @@ class HumanEquationRevision:
                 assistance_proposal_sha256=self.assistance_proposal_sha256,
                 note=self.note,
                 revision=self.revision,
-                updated_at_utc=self.updated_at_utc,
             ),
         )
+        _utc_text(self.recorded_at_utc)
         if self.revision_id != expected_id:
             raise EquationReviewError("human revision identity is inconsistent")
 
     @property
-    def updated_at_utc_text(self) -> str:
-        return _utc_text(self.updated_at_utc)
+    def recorded_at_utc_text(self) -> str:
+        return _utc_text(self.recorded_at_utc)
 
 
 @dataclass(frozen=True, slots=True)
@@ -398,19 +398,13 @@ def append_human_equation_revision(
     if current != expected:
         if current == expected + 1:
             replay = _human_revision(request, revision=current)
-            existing = _existing_child(
-                document_root,
-                human_root / f"revision-{current:04d}",
-                "human equation revision",
-            )
-            try:
-                _verify_exact_files(existing, _human_artifacts(replay))
-            except EquationReviewPublicationError as error:
+            existing = revisions[-1]
+            if existing.revision_id != replay.revision_id:
                 raise EquationReviewStaleRevision(
                     "human revision advanced with different evidence"
-                ) from error
+                )
             return HumanEquationRevisionAppendResult(
-                replay,
+                existing,
                 EquationReviewPublicationAction.UNCHANGED,
             )
         raise EquationReviewStaleRevision("expected previous human revision is stale")
@@ -463,7 +457,7 @@ def _classify_revision_collision(
     latest = revisions[-1]
     if latest.revision > attempted.revision:
         raise EquationReviewStaleRevision("human revisions advanced during append")
-    if latest == attempted:
+    if latest.revision_id == attempted.revision_id:
         return HumanEquationRevisionAppendResult(
             latest,
             EquationReviewPublicationAction.UNCHANGED,
@@ -484,7 +478,6 @@ def _human_revision(
         assistance_proposal_sha256=request.assistance_proposal_sha256,
         note=request.note,
         revision=revision,
-        updated_at_utc=request.reviewed_at_utc,
     )
     return HumanEquationRevision(
         binding=request.binding,
@@ -492,7 +485,7 @@ def _human_revision(
         assistance_proposal_sha256=request.assistance_proposal_sha256,
         note=request.note,
         revision=revision,
-        updated_at_utc=request.reviewed_at_utc,
+        recorded_at_utc=request.recorded_at_utc,
         revision_id=_id("equation-human-revision", identity),
     )
 
@@ -536,8 +529,8 @@ def _human_artifacts(
         "note": revision.note,
         "revision": revision.revision,
         "revision_id": revision.revision_id,
+        "recorded_at_utc": revision.recorded_at_utc_text,
         "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
-        "updated_at_utc": revision.updated_at_utc_text,
     }
     decision = _canonical(decision_value)
     manifest = {
@@ -564,7 +557,6 @@ def _human_identity(
     assistance_proposal_sha256: str | None,
     note: str,
     revision: int,
-    updated_at_utc: datetime,
 ) -> dict[str, object]:
     return {
         **_binding_value(binding),
@@ -574,7 +566,6 @@ def _human_identity(
         "note": note,
         "revision": revision,
         "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
-        "updated_at_utc": _utc_text(updated_at_utc),
     }
 
 
@@ -922,7 +913,7 @@ def _existing_revisions(
                 assistance_proposal_sha256=item.assistance_proposal_sha256,
                 note=item.note,
                 revision=item.revision,
-                updated_at_utc=item.updated_at_utc,
+                recorded_at_utc=item.recorded_at_utc,
                 revision_id=item.revision_id,
             )
             for item in tree.revisions
@@ -1193,10 +1184,10 @@ def _bounded_text(
 
 def _utc_text(value: datetime) -> str:
     if not isinstance(value, datetime):
-        raise EquationReviewError("reviewed_at_utc must be a datetime")
+        raise EquationReviewError("recorded_at_utc must be a datetime")
     offset = value.utcoffset()
     if offset is None or offset != timedelta(0):
-        raise EquationReviewError("reviewed_at_utc must be timezone-aware UTC")
+        raise EquationReviewError("recorded_at_utc must be timezone-aware UTC")
     return value.isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 

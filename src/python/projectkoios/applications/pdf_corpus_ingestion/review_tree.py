@@ -12,7 +12,7 @@ from pathlib import PurePosixPath
 from projectkoios.references import AuthorizedRoot
 
 EQUATION_REVIEW_CONTRACT_ID = "projectkoios.applications.pdf-corpus-equation-review"
-EQUATION_REVIEW_SCHEMA_VERSION = 1
+EQUATION_REVIEW_SCHEMA_VERSION = 2
 MAX_EQUATION_REVIEW_REVISIONS = 9_999
 MAX_EQUATION_REVIEW_NOTE_CHARACTERS = 10_000
 MAX_ASSISTED_PROPOSAL_CHARACTERS = 100_000
@@ -67,7 +67,7 @@ class ValidatedHumanRevision:
     assistance_proposal_sha256: str | None
     note: str
     revision: int
-    updated_at_utc: datetime
+    recorded_at_utc: datetime
     revision_id: str
 
 
@@ -296,8 +296,8 @@ def _validate_revisions(
             maximum=MAX_EQUATION_REVIEW_NOTE_CHARACTERS,
             empty=True,
         )
-        updated_at_utc = _parse_utc(manifest.get("updated_at_utc"))
-        core = {
+        recorded_at_utc = _parse_utc(manifest.get("recorded_at_utc"))
+        identity = {
             **binding.as_dict(),
             "assistance_proposal_sha256": proposal_sha256,
             "contract_id": EQUATION_REVIEW_CONTRACT_ID,
@@ -305,10 +305,13 @@ def _validate_revisions(
             "note": note,
             "revision": revision,
             "schema_version": EQUATION_REVIEW_SCHEMA_VERSION,
-            "updated_at_utc": _utc_text(updated_at_utc),
         }
-        revision_id = _id("equation-human-revision", core)
-        expected_decision = {**core, "revision_id": revision_id}
+        revision_id = _id("equation-human-revision", identity)
+        expected_decision = {
+            **identity,
+            "recorded_at_utc": _utc_text(recorded_at_utc),
+            "revision_id": revision_id,
+        }
         expected_manifest = {
             **expected_decision,
             "artifact_files": [
@@ -328,7 +331,7 @@ def _validate_revisions(
                 assistance_proposal_sha256=proposal_sha256,
                 note=str(note),
                 revision=revision,
-                updated_at_utc=updated_at_utc,
+                recorded_at_utc=recorded_at_utc,
                 revision_id=revision_id,
             )
         )

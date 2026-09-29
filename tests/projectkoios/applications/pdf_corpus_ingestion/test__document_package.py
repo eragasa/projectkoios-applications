@@ -194,7 +194,7 @@ def test_review_append_preserves_exact_deterministic_package_replay(
             disposition=EquationReviewDisposition.ACCEPT_TRANSCRIPTION,
             assistance_proposal_sha256=attempt.proposal_sha256,
             note="Synthetic review fixture.",
-            reviewed_at_utc=datetime(2026, 9, 28, 12, 0, tzinfo=UTC),
+            recorded_at_utc=datetime(2026, 9, 28, 12, 0, tzinfo=UTC),
             expected_previous_revision=0,
         ),
         document_root=document_root,

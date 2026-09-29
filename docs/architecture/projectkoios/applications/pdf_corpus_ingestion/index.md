@@ -107,8 +107,8 @@ is a later application-composition slice.
 
 ## Append-only equation review
 
-The narrow application-owned review seam appends to one already-published
-candidate region without changing deterministic evidence:
+The narrow application-owned review seam uses contract schema 2 and appends to
+one already-published candidate region without changing deterministic evidence:
 
 ```text
 content/equations/regions/<candidate-digest>/
@@ -142,9 +142,14 @@ source PDF SHA-256, deterministic candidate-manifest SHA-256, region-image
 SHA-256, and—when referenced—the exact attempt-0001 proposal SHA-256. Acceptance
 requires that proposal binding and is represented only by the separate human
 record; it never mutates or upgrades the assisted status. Disposition and note
-are preserved exactly. Stable revision identity includes a caller-supplied,
-timezone-aware UTC review time; publication runtime is not injected into that
-identity.
+are preserved exactly. `recorded_at_utc` is a timezone-aware UTC receipt time
+supplied only by the trusted API adapter; browsers and other untrusted request
+callers cannot choose it. The application seam requires that trusted caller but
+does not claim to authenticate it. Receipt time is stored in the immutable
+record but excluded from stable decision/revision identity. A semantically
+identical retry or collision with a later receipt time returns `unchanged` with
+the originally stored time. Consumers order decisions solely by contiguous
+revision number, never by receipt time.
 
 Before mutation, both operations require the exact document-package contract
 and schema, recompute its content-derived package identity, verify every bounded
