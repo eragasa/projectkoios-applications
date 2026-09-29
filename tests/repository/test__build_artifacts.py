@@ -24,7 +24,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _EPOCH = "1758931200"
 _SDIST_INVENTORY = _ROOT / "tests/fixtures/artifacts/sdist-inventory.txt"
 _SDIST_INVENTORY_SHA256 = (
-    "262c72ec770f778df096c2b9c7630508a0abf5b6777eb5429e77f7abb2310a15"
+    "e4b6292bfd9e9060efbc8726781705055bb03d23caa89c31563bc2145b5634ca"
 )
 _WHEEL_INVENTORY = (
     "projectkoios/applications/__init__.py",
@@ -37,6 +37,7 @@ _WHEEL_INVENTORY = (
     "projectkoios/applications/pdf_corpus_ingestion/equation_review.py",
     "projectkoios/applications/pdf_corpus_ingestion/multimodal.py",
     "projectkoios/applications/pdf_corpus_ingestion/plan.py",
+    "projectkoios/applications/pdf_corpus_ingestion/review_queue.py",
     "projectkoios/applications/pdf_corpus_ingestion/review_tree.py",
     "projectkoios/applications/pdf_corpus_ingestion/roots.py",
     "projectkoios/applications/pdf_corpus_ingestion/runner.py",
@@ -242,6 +243,7 @@ with tempfile.TemporaryDirectory() as directory:
         EquationRenderConfirmation,
         EquationReviewEvidenceBinding,
         PdfCorpusIngestionPlan,
+        project_equation_review_queue,
     )
     from projectkoios.applications.pw_dft_scf.replay import PwDftScfConvergenceReplayer
     from projectkoios.applications.pw_dft_relaxation.composition import (
@@ -252,6 +254,7 @@ with tempfile.TemporaryDirectory() as directory:
         and EquationRenderConfirmation
         and EquationReviewEvidenceBinding
         and PdfCorpusIngestionPlan
+        and project_equation_review_queue
         and PwDftScfConvergenceReplayer
         and PwDftRelaxationComposer
     )
@@ -296,12 +299,14 @@ with tempfile.TemporaryDirectory() as directory:
         EquationRenderConfirmation,
         EquationReviewEvidenceBinding,
         PdfCorpusIngestionPlan,
+        project_equation_review_queue,
     )
     assert (
         EquationDisplayMode
         and EquationRenderConfirmation
         and EquationReviewEvidenceBinding
         and PdfCorpusIngestionPlan
+        and project_equation_review_queue
     )
     assert "projectkoios.simulations" not in sys.modules
     assert "physkit" not in sys.modules

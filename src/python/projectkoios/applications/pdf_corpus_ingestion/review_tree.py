@@ -144,8 +144,8 @@ def _collect_paths(
         _collect_subtree(
             root,
             human_root,
-            max_files=2 * MAX_EQUATION_REVIEW_REVISIONS,
-            max_entries=3 * MAX_EQUATION_REVIEW_REVISIONS + 8,
+            max_files=4 * MAX_EQUATION_REVIEW_REVISIONS,
+            max_entries=5 * MAX_EQUATION_REVIEW_REVISIONS + 8,
             max_depth=2,
         )
     )

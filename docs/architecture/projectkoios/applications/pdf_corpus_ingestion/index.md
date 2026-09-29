@@ -195,6 +195,35 @@ outside it. This slice does not access a
 corpus, run PDF extraction, invoke a model or network, or authorize training-data
 publication.
 
+## Deterministic equation review queue
+
+`project_equation_review_queue` is the applications-owned read-only projection
+for one explicitly supplied completed document-package `AuthorizedRoot`. It
+never searches for document roots. It verifies the completion identity and every
+inventoried artifact, requires exact equation-index membership, rejects duplicate
+or mismatched candidate records, and validates every observed review extension
+through the shared review-tree validator. Missing inventoried bytes raise a
+typed incomplete error; malformed package, candidate, or review evidence raises
+a typed malformed error instead of silently dropping an item.
+
+The projection admits at most 256 indexed candidates and returns only candidates
+whose deterministic state is `display` plus `proposed`. Items are ordered by
+zero-based physical page, then top/left/bottom/right geometry, then candidate ID.
+Each frozen path-free DTO carries document/candidate/page/box identity, `DISPLAY`
+mode, native deterministic text and processor evidence, source/candidate/region
+hashes, an optional complete immutable assisted attempt, and the latest validated
+schema-2 or schema-3 human revision. Schema-2 acceptance therefore remains
+visible without invented accepted text; schema-3 acceptance includes exact
+reviewer LaTeX and derived Obsidian Markdown contents and hashes plus render
+provenance. Rejection and revision-required states expose no accepted
+representation.
+
+The queue identity is SHA-256-derived from the completed package identity and
+canonical projected content. It has no observation or runtime timestamp, so an
+unchanged package and review tree replay byte-for-byte to the same ordering and
+identity. The operation performs no write or model invocation and returns no
+region-image bytes; it is the narrow API-consumable read seam, not an API route.
+
 ## Multimodal resolution stop boundary
 
 Native extraction evidence deterministically selects only pages that meet the

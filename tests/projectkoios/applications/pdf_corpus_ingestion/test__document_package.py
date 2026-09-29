@@ -17,6 +17,7 @@ from projectkoios.applications.pdf_corpus_ingestion import (
     EquationReviewEvidenceBinding,
     HumanEquationRevisionRequest,
     append_human_equation_revision,
+    project_equation_review_queue,
     publish_assisted_equation_attempt,
 )
 from projectkoios.applications.pdf_corpus_ingestion.document_package import (
@@ -145,6 +146,17 @@ def test_publishes_document_directory_and_verifies_exact_replay(
     assert (document_root / "ingestion/extraction.json").is_file()
     assert (document_root / "content/equations/index.json").is_file()
     assert (document_root / "document-manifest.json").is_file()
+    queue = project_equation_review_queue(
+        document_root=AuthorizedRoot.existing(
+            document_root,
+            label="published document package",
+            root_alias="test-corpus-output",
+            storage_class=RootStorageClass.LOCAL,
+        )
+    )
+    assert len(queue.items) == 1
+    assert queue.items[0].display_mode == "DISPLAY"
+    assert queue.items[0].native_evidence.raw_text == "E = mc^2 (1)"
 
 
 def test_review_append_preserves_exact_deterministic_package_replay(
