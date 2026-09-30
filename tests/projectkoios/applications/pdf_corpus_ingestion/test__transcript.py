@@ -151,7 +151,9 @@ def test_projects_complete_exact_path_free_automated_transcript(
     assert len({page.page_id for page in first.pages}) == 3
     assert ("title", "Synthetic Transcript Display") in first.metadata
     assert first.metadata == tuple(sorted(first.metadata))
-    serialized = json.dumps(asdict(first), ensure_ascii=False, sort_keys=True)
+    projection_value = asdict(first)
+    assert "schema_version" not in projection_value
+    serialized = json.dumps(projection_value, ensure_ascii=False, sort_keys=True)
     assert "manifest.json" not in serialized
     assert "ingestion/pages" not in serialized
     assert str(tmp_path) not in serialized

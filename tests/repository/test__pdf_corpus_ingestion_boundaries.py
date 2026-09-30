@@ -76,6 +76,19 @@ def test_transcript_projection_uses_only_the_public_owner_replay_seam() -> None:
     assert "socket" not in text
 
 
+def test_document_package_and_transcript_seams_are_unversioned() -> None:
+    document_package = (_PACKAGE / "document_package.py").read_text()
+    transcript = (_PACKAGE / "transcript.py").read_text()
+    public_exports = (_PACKAGE / "__init__.py").read_text()
+
+    assert "schema_version" not in document_package
+    assert "schema_version" not in transcript
+    assert "DOCUMENT_PACKAGE_SCHEMA_VERSION" not in public_exports
+    assert "DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION" not in public_exports
+    assert "DOCUMENT_TRANSCRIPT_SCHEMA_VERSION" not in public_exports
+    assert "DocumentTranscriptUnsupportedPackageError" not in public_exports
+
+
 def test_runner_uses_bound_filesystem_primitives() -> None:
     text = (_PACKAGE / "runner.py").read_text()
     assert "staged_path.read_bytes(" not in text

@@ -20,7 +20,7 @@ extraction task's no-install rule, the wheel is then extracted into an isolated
 temporary import root and imported with the separately provided committed
 dependency source.
 
-For the schema-2 document transcript slice, run the deterministic owner script
+For the canonical document-package transcript slice, run the deterministic owner script
 against repositories that contain the exact pinned dependency Git objects:
 
 ```bash
@@ -39,8 +39,9 @@ private directory, and runs focused tests, lint, formatting, and strict typing.
 It stops before tests if an input is absent, relative, the exact object/tree is
 unavailable, or Python is not 3.14. It performs no install, network call, source
 checkout, or repository write; the temporary archive is removed on exit. Reuse
-is limited to this repository's schema-2 package and transcript seam and is not
-a package migration, corpus discovery, API smoke test, or full-suite substitute.
+is limited to this repository's current canonical package and transcript seam
+and is not a package migration, corpus discovery, API smoke test, or full-suite
+substitute.
 
 The cross-provider baseline is simulations commit
 `24dffe10c29e60afcd5fe07aaacb84921a41a43d`, tree

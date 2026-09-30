@@ -44,7 +44,6 @@ from .equation_review import (
 DOCUMENT_TRANSCRIPT_CONTRACT_ID = (
     "projectkoios.applications.pdf-corpus-document-transcript"
 )
-DOCUMENT_TRANSCRIPT_SCHEMA_VERSION = 1
 MAX_DOCUMENT_TRANSCRIPT_DISPLAY_NAME_BYTES = 1_024
 _INGESTION_MANIFEST = PurePosixPath("ingestion/manifest.json")
 _EXTRACTION_ARTIFACT = PurePosixPath("ingestion/extraction.json")
@@ -91,7 +90,6 @@ class DocumentTranscriptProjection:
     """Bounded immutable display projection for one completed PDF package."""
 
     contract_id: str
-    schema_version: int
     document_id: str
     display_name: str
     status: DocumentTranscriptStatus
@@ -213,14 +211,12 @@ def project_document_transcript(
                 for page in pages
             ],
             "physical_page_count": len(pages),
-            "schema_version": DOCUMENT_TRANSCRIPT_SCHEMA_VERSION,
             "source_byte_size": transcript.source_byte_size,
             "source_sha256": transcript.source_sha256,
             "status": DocumentTranscriptStatus.AUTOMATED_UNREVIEWED.value,
         }
         return DocumentTranscriptProjection(
             contract_id=DOCUMENT_TRANSCRIPT_CONTRACT_ID,
-            schema_version=DOCUMENT_TRANSCRIPT_SCHEMA_VERSION,
             document_id=document_id,
             display_name=display_name,
             status=DocumentTranscriptStatus.AUTOMATED_UNREVIEWED,
