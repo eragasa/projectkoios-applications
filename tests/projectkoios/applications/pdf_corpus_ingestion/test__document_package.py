@@ -21,9 +21,7 @@ from projectkoios.applications.pdf_corpus_ingestion import (
     publish_assisted_equation_attempt,
 )
 from projectkoios.applications.pdf_corpus_ingestion.document_package import (
-    DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION,
     DOCUMENT_PACKAGE_MANIFEST,
-    DOCUMENT_PACKAGE_SCHEMA_VERSION,
     DeterministicDocumentPackage,
     DocumentPackageArtifact,
     DocumentPackageError,
@@ -83,9 +81,7 @@ def test_builds_document_centric_deterministic_equation_package() -> None:
     ingestion_manifest = json.loads(
         artifacts[PurePosixPath("ingestion/manifest.json")].content
     )
-    assert ingestion_manifest["schema_version"] == (
-        DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION
-    )
+    assert "schema_version" not in ingestion_manifest
     assert ingestion_manifest["extraction_configuration"] == {
         "low_text_character_threshold": 0,
         "maximum_pages": 10,
@@ -115,7 +111,7 @@ def test_builds_document_centric_deterministic_equation_package() -> None:
 
     completion = json.loads(package.artifacts[-1].content)
     assert completion["status"] == "deterministic-complete"
-    assert completion["schema_version"] == DOCUMENT_PACKAGE_SCHEMA_VERSION
+    assert "schema_version" not in completion
     assert completion["stages"] == {
         "assisted": "not-started",
         "equation_detection": "deterministic-complete",
@@ -126,6 +122,19 @@ def test_builds_document_centric_deterministic_equation_package() -> None:
     assert completion["extraction_bundle_id"] == extraction.bundle_id
     assert completion["package_id"] == package.package_id
     assert len(completion["artifact_files"]) == len(package.artifacts) - 1
+    application_manifests = (
+        PurePosixPath("source/manifest.json"),
+        PurePosixPath("ingestion/manifest.json"),
+        PurePosixPath("content/equations/index.json"),
+        PurePosixPath("content/equations/manifest.json"),
+        DOCUMENT_PACKAGE_MANIFEST,
+        PurePosixPath(candidate["source_manifest"]),
+        PurePosixPath(candidate["deterministic_manifest"]),
+    )
+    assert all(
+        "schema_version" not in json.loads(artifacts[path].content)
+        for path in application_manifests
+    )
     assert not any(
         "assisted" in item.relative_path.parts
         or "human" in item.relative_path.parts

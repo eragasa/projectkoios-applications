@@ -26,10 +26,8 @@ from projectkoios.ingestion import (
 from projectkoios.references import AuthorizedRoot
 
 from .document_package import (
-    DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION,
     DOCUMENT_PACKAGE_CONTRACT_ID,
     DOCUMENT_PACKAGE_MANIFEST,
-    DOCUMENT_PACKAGE_SCHEMA_VERSION,
 )
 from .equation_review import (
     EquationReviewEvidenceBinding,
@@ -69,10 +67,6 @@ class DocumentTranscriptUnavailableError(DocumentTranscriptError):
 
 class DocumentTranscriptMalformedError(DocumentTranscriptError):
     """Package or owner extraction evidence is malformed or inconsistent."""
-
-
-class DocumentTranscriptUnsupportedPackageError(DocumentTranscriptMalformedError):
-    """The package schema cannot safely supply transcript evidence."""
 
 
 class DocumentTranscriptStatus(StrEnum):
@@ -126,11 +120,6 @@ def project_document_transcript(
                 "document completion manifest is unavailable"
             )
         document = _read_json(document_root, DOCUMENT_PACKAGE_MANIFEST)
-        schema_version = document.get("schema_version")
-        if schema_version != DOCUMENT_PACKAGE_SCHEMA_VERSION:
-            raise DocumentTranscriptUnsupportedPackageError(
-                "document package schema is unsupported"
-            )
         if document.get("contract_id") != DOCUMENT_PACKAGE_CONTRACT_ID:
             raise DocumentTranscriptMalformedError(
                 "document package contract is malformed"
@@ -298,7 +287,6 @@ def _ingestion_binding(
         "extraction_configuration_digest",
         "extraction_manifest_id",
         "manifest_id",
-        "schema_version",
         "source_sha256",
         "status",
     }
@@ -306,7 +294,6 @@ def _ingestion_binding(
     manifest_id = identity.pop("manifest_id", None)
     if (
         set(value) != expected_keys
-        or value.get("schema_version") != DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION
         or value.get("document_key") != document_id
         or value.get("source_sha256") != source_sha256
         or value.get("extraction_bundle_id") != extraction_bundle_id

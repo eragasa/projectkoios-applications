@@ -10,11 +10,9 @@ import pymupdf
 import pytest
 
 from projectkoios.applications.pdf_corpus_ingestion import (
-    DOCUMENT_PACKAGE_SCHEMA_VERSION,
     DocumentTranscriptIncompleteError,
     DocumentTranscriptMalformedError,
     DocumentTranscriptStatus,
-    DocumentTranscriptUnsupportedPackageError,
     build_deterministic_document_package,
     project_document_transcript,
     publish_deterministic_document_package,
@@ -253,17 +251,18 @@ def test_configuration_binding_and_stale_package_bytes_fail_closed(
         project_document_transcript(document_root=fresh_root)
 
 
-def test_schema_one_package_is_explicitly_unsupported(tmp_path: Path) -> None:
+def test_version_tagged_package_is_ordinary_malformed_evidence(
+    tmp_path: Path,
+) -> None:
     root, document = _document_root(tmp_path)
-    unsupported = cast(dict[str, int], _fixture()["unsupported"])
+    malformed = cast(dict[str, object], _fixture()["malformed_extra_key"])
     completion_path = document / "document-manifest.json"
     completion = json.loads(completion_path.read_bytes())
-    assert completion["schema_version"] == DOCUMENT_PACKAGE_SCHEMA_VERSION
-    completion["schema_version"] = unsupported["package_schema_version"]
+    completion[str(malformed["key"])] = malformed["value"]
     completion_path.write_bytes(_canonical(completion))
     _rewrite_completion(document)
 
-    with pytest.raises(DocumentTranscriptUnsupportedPackageError):
+    with pytest.raises(DocumentTranscriptMalformedError):
         project_document_transcript(document_root=root)
 
 

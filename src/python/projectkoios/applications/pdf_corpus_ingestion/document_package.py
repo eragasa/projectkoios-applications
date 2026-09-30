@@ -33,8 +33,6 @@ from .review_tree import (
 )
 
 DOCUMENT_PACKAGE_CONTRACT_ID = "projectkoios.applications.pdf-corpus-document-package"
-DOCUMENT_PACKAGE_SCHEMA_VERSION = 2
-DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION = 2
 DOCUMENT_PACKAGE_MANIFEST = PurePosixPath("document-manifest.json")
 MAX_DOCUMENT_PACKAGE_ARTIFACTS = 10_000
 MAX_DOCUMENT_PACKAGE_BYTES = 512_000_000
@@ -128,14 +126,10 @@ class DeterministicDocumentPackage:
     equation_detection_result_id: str
     artifacts: tuple[DocumentPackageArtifact, ...]
     contract_id: str = DOCUMENT_PACKAGE_CONTRACT_ID
-    schema_version: int = DOCUMENT_PACKAGE_SCHEMA_VERSION
 
     def __post_init__(self) -> None:
         _document_key(self.document_key)
-        if (
-            self.contract_id != DOCUMENT_PACKAGE_CONTRACT_ID
-            or self.schema_version != DOCUMENT_PACKAGE_SCHEMA_VERSION
-        ):
+        if self.contract_id != DOCUMENT_PACKAGE_CONTRACT_ID:
             raise DocumentPackageError("unsupported document-package contract")
         _stable_id(self.package_id, "document-processing-package")
         _digest(self.source_sha256, "source_sha256")
@@ -198,7 +192,6 @@ class DeterministicDocumentPackage:
             or manifest_value.get("package_id") != self.package_id
             or manifest_value.get("document_key") != self.document_key
             or manifest_value.get("source_sha256") != self.source_sha256
-            or manifest_value.get("schema_version") != DOCUMENT_PACKAGE_SCHEMA_VERSION
             or manifest_value.get("status") != "deterministic-complete"
         ):
             raise DocumentPackageError("document manifest is inconsistent")
@@ -243,7 +236,6 @@ def build_deterministic_document_package(
                     "document_key": document_key,
                     "locator": source.locator,
                     "media_type": source.media_type,
-                    "schema_version": 1,
                     "source_blob_id": source.blob_id,
                     "source_byte_size": source.byte_length,
                     "source_id": source.source_id,
@@ -297,7 +289,6 @@ def build_deterministic_document_package(
                         extraction.configuration.configuration_digest
                     ),
                     "extraction_manifest_id": (extraction.result.manifest.manifest_id),
-                    "schema_version": DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION,
                     "source_sha256": source.content_hash,
                     "status": "deterministic-complete",
                 },
@@ -349,7 +340,6 @@ def build_deterministic_document_package(
                         "image_path": image_path.as_posix(),
                         "image_sha256": region.content_sha256,
                         "region": region_value,
-                        "schema_version": 1,
                         "source_sha256": source.content_hash,
                         "status": "immutable-source-evidence",
                     },
@@ -370,7 +360,6 @@ def build_deterministic_document_package(
                         "candidate": candidate_value,
                         "detection_result_id": detection.result_id,
                         "document_key": document_key,
-                        "schema_version": 1,
                         "status": "deterministic-proposal",
                     },
                 ),
@@ -397,7 +386,6 @@ def build_deterministic_document_package(
                 "detection_artifact": detection_path.as_posix(),
                 "detection_result_id": detection.result_id,
                 "document_key": document_key,
-                "schema_version": 1,
                 "source_sha256": source.content_hash,
                 "status": "deterministic-unreviewed",
             },
@@ -418,7 +406,6 @@ def build_deterministic_document_package(
                     "candidate_count": len(detection.candidates),
                     "detection_result_id": detection.result_id,
                     "document_key": document_key,
-                    "schema_version": 1,
                     "source_sha256": source.content_hash,
                     "status": "deterministic-unreviewed",
                     "warning_count": len(detection.warnings),
@@ -434,7 +421,6 @@ def build_deterministic_document_package(
         "document_key": document_key,
         "equation_detection_result_id": detection.result_id,
         "extraction_bundle_id": extraction.bundle_id,
-        "schema_version": DOCUMENT_PACKAGE_SCHEMA_VERSION,
         "source_byte_size": source.byte_length,
         "source_sha256": source.content_hash,
         "stages": {

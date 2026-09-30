@@ -14,7 +14,8 @@
   "malformed": {
     "replace_artifact": "ingestion/extraction.json"
   },
-  "unsupported": {
-    "package_schema_version": 1
+  "malformed_extra_key": {
+    "key": "schema_version",
+    "value": 1
   }
 }

@@ -10,7 +10,6 @@ import pytest
 
 from projectkoios.applications.pdf_corpus_ingestion import (
     ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION,
-    DOCUMENT_PACKAGE_SCHEMA_VERSION,
     AssistedEquationAttempt,
     EquationDisplayMode,
     EquationRenderConfirmation,
@@ -69,7 +68,6 @@ def _document_root(
             },
             "detection_result_id": detection_id,
             "document_key": _DOCUMENT,
-            "schema_version": 1,
             "status": "deterministic-proposal",
         }
     )
@@ -80,7 +78,6 @@ def _document_root(
             _canonical(
                 {
                     "document_key": _DOCUMENT,
-                    "schema_version": 1,
                     "source_byte_size": len(source),
                     "source_path": "source/document.pdf",
                     "source_sha256": source_sha256,
@@ -109,7 +106,6 @@ def _document_root(
                     "document_key": _DOCUMENT,
                     "image_path": image_path,
                     "image_sha256": image_sha256,
-                    "schema_version": 1,
                     "source_sha256": source_sha256,
                     "status": "immutable-source-evidence",
                 }
@@ -136,7 +132,6 @@ def _document_root(
                     ),
                     "detection_result_id": detection_id,
                     "document_key": _DOCUMENT,
-                    "schema_version": 1,
                     "source_sha256": source_sha256,
                     "status": "deterministic-unreviewed",
                 }
@@ -163,7 +158,6 @@ def _document_root(
         "document_key": _DOCUMENT,
         "equation_detection_result_id": detection_id,
         "extraction_bundle_id": extraction_id,
-        "schema_version": DOCUMENT_PACKAGE_SCHEMA_VERSION,
         "source_byte_size": len(source),
         "source_sha256": source_sha256,
         "stages": {

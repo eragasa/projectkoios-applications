@@ -16,7 +16,6 @@ from . import review_tree as _review_tree
 from .document_package import (
     DOCUMENT_PACKAGE_CONTRACT_ID,
     DOCUMENT_PACKAGE_MANIFEST,
-    DOCUMENT_PACKAGE_SCHEMA_VERSION,
     MAX_DOCUMENT_PACKAGE_ARTIFACTS,
     MAX_DOCUMENT_PACKAGE_BYTES,
 )
@@ -1036,7 +1035,6 @@ def _document_package_inventory(
         "equation_detection_result_id",
         "extraction_bundle_id",
         "package_id",
-        "schema_version",
         "source_byte_size",
         "source_sha256",
         "stages",
@@ -1048,7 +1046,6 @@ def _document_package_inventory(
     if (
         set(document) != expected_keys
         or document.get("contract_id") != DOCUMENT_PACKAGE_CONTRACT_ID
-        or document.get("schema_version") != DOCUMENT_PACKAGE_SCHEMA_VERSION
         or document.get("document_key") != binding.document_id
         or document.get("source_sha256") != binding.source_sha256
         or document.get("stages") != _DOCUMENT_PACKAGE_STAGES

@@ -2,10 +2,8 @@
 
 from .composition import compose_pdf_corpus_ingestion_plan
 from .document_package import (
-    DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION,
     DOCUMENT_PACKAGE_CONTRACT_ID,
     DOCUMENT_PACKAGE_MANIFEST,
-    DOCUMENT_PACKAGE_SCHEMA_VERSION,
     DeterministicDocumentPackage,
     DocumentPackageArtifact,
     DocumentPackageError,
@@ -75,16 +73,13 @@ from .transcript import (
     DocumentTranscriptProjection,
     DocumentTranscriptStatus,
     DocumentTranscriptUnavailableError,
-    DocumentTranscriptUnsupportedPackageError,
     project_document_transcript,
 )
 
 __all__ = [
-    "DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION",
     "DOCUMENT_PACKAGE_CONTRACT_ID",
     "DOCUMENT_PACKAGE_MANIFEST",
     "ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION",
-    "DOCUMENT_PACKAGE_SCHEMA_VERSION",
     "DOCUMENT_TRANSCRIPT_CONTRACT_ID",
     "DOCUMENT_TRANSCRIPT_SCHEMA_VERSION",
     "EQUATION_REVIEW_CONTRACT_ID",
@@ -110,7 +105,6 @@ __all__ = [
     "DocumentTranscriptProjection",
     "DocumentTranscriptStatus",
     "DocumentTranscriptUnavailableError",
-    "DocumentTranscriptUnsupportedPackageError",
     "EquationDisplayMode",
     "EquationRenderConfirmation",
     "EquationReviewConcurrencyError",

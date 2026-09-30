@@ -51,7 +51,6 @@ _INDEX_KEYS = {
     "detection_artifact",
     "detection_result_id",
     "document_key",
-    "schema_version",
     "source_sha256",
     "status",
 }
@@ -63,6 +62,23 @@ _INDEX_RECORD_KEYS = {
     "image_sha256",
     "kind",
     "source_manifest",
+}
+_CANDIDATE_SOURCE_KEYS = {
+    "candidate_id",
+    "document_key",
+    "image_path",
+    "image_sha256",
+    "manifest_id",
+    "region",
+    "source_sha256",
+    "status",
+}
+_DETERMINISTIC_CANDIDATE_KEYS = {
+    "candidate",
+    "detection_result_id",
+    "document_key",
+    "manifest_id",
+    "status",
 }
 
 
@@ -339,7 +355,6 @@ def _validate_index(
         or index.get("detection_artifact") != _DETECTION_PATH.as_posix()
         or index.get("detection_result_id") != detection_result_id
         or index.get("document_key") != document_id
-        or index.get("schema_version") != 1
         or index.get("source_sha256") != source_sha256
         or index.get("status") != "deterministic-unreviewed"
         or not isinstance(candidates, list)
@@ -409,19 +424,19 @@ def _validate_candidate(
     rendered = candidate.get("rendered_region")
     region = source_manifest.get("region")
     if (
-        source_manifest_id != _id("equation-region-source-manifest", source_identity)
+        set(source_manifest) != _CANDIDATE_SOURCE_KEYS
+        or set(deterministic) != _DETERMINISTIC_CANDIDATE_KEYS
+        or source_manifest_id != _id("equation-region-source-manifest", source_identity)
         or deterministic_manifest_id
         != _id("equation-deterministic-manifest", deterministic_identity)
         or source_manifest.get("candidate_id") != candidate_id
         or source_manifest.get("document_key") != document_id
         or source_manifest.get("image_path") != image_path.as_posix()
         or source_manifest.get("image_sha256") != image_sha256
-        or source_manifest.get("schema_version") != 1
         or source_manifest.get("source_sha256") != source_sha256
         or source_manifest.get("status") != "immutable-source-evidence"
         or deterministic.get("detection_result_id") != detection_result_id
         or deterministic.get("document_key") != document_id
-        or deterministic.get("schema_version") != 1
         or deterministic.get("status") != "deterministic-proposal"
         or candidate.get("candidate_id") != candidate_id
         or candidate.get("kind") != index_value.get("kind")

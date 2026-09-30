@@ -75,20 +75,34 @@ export MYPYPATH="src/python:${work}/ingestion/src/python:${work}/references/src/
 
 "${PYTHON_BIN}" -m pytest -q \
   tests/projectkoios/applications/pdf_corpus_ingestion/test__document_package.py \
+  tests/projectkoios/applications/pdf_corpus_ingestion/test__equation_review.py \
+  tests/projectkoios/applications/pdf_corpus_ingestion/test__review_queue.py \
   tests/projectkoios/applications/pdf_corpus_ingestion/test__transcript.py \
   tests/repository/test__pdf_corpus_ingestion_boundaries.py
 "${PYTHON_BIN}" -m ruff check \
   src/python/projectkoios/applications/pdf_corpus_ingestion/document_package.py \
+  src/python/projectkoios/applications/pdf_corpus_ingestion/equation_review.py \
+  src/python/projectkoios/applications/pdf_corpus_ingestion/review_queue.py \
   src/python/projectkoios/applications/pdf_corpus_ingestion/transcript.py \
   tests/projectkoios/applications/pdf_corpus_ingestion/test__document_package.py \
+  tests/projectkoios/applications/pdf_corpus_ingestion/test__equation_review.py \
+  tests/projectkoios/applications/pdf_corpus_ingestion/test__review_queue.py \
   tests/projectkoios/applications/pdf_corpus_ingestion/test__transcript.py
 "${PYTHON_BIN}" -m ruff format --check \
   src/python/projectkoios/applications/pdf_corpus_ingestion/document_package.py \
+  src/python/projectkoios/applications/pdf_corpus_ingestion/equation_review.py \
+  src/python/projectkoios/applications/pdf_corpus_ingestion/review_queue.py \
   src/python/projectkoios/applications/pdf_corpus_ingestion/transcript.py \
   tests/projectkoios/applications/pdf_corpus_ingestion/test__document_package.py \
+  tests/projectkoios/applications/pdf_corpus_ingestion/test__equation_review.py \
+  tests/projectkoios/applications/pdf_corpus_ingestion/test__review_queue.py \
   tests/projectkoios/applications/pdf_corpus_ingestion/test__transcript.py
 "${PYTHON_BIN}" -m mypy --strict \
   src/python/projectkoios/applications/pdf_corpus_ingestion/document_package.py \
+  src/python/projectkoios/applications/pdf_corpus_ingestion/equation_review.py \
+  src/python/projectkoios/applications/pdf_corpus_ingestion/review_queue.py \
   src/python/projectkoios/applications/pdf_corpus_ingestion/transcript.py \
   tests/projectkoios/applications/pdf_corpus_ingestion/test__document_package.py \
+  tests/projectkoios/applications/pdf_corpus_ingestion/test__equation_review.py \
+  tests/projectkoios/applications/pdf_corpus_ingestion/test__review_queue.py \
   tests/projectkoios/applications/pdf_corpus_ingestion/test__transcript.py
