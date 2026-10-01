@@ -24,13 +24,17 @@ _ROOT = Path(__file__).resolve().parents[2]
 _EPOCH = "1758931200"
 _SDIST_INVENTORY = _ROOT / "tests/fixtures/artifacts/sdist-inventory.txt"
 _SDIST_INVENTORY_SHA256 = (
-    "ecfe77ade9caedc96d74c35ac9600ae3a44ffcae98946ab1e744eeea285f1638"
+    "a9dc7181354bd484937160d191366a68d1de39e16091bec876db021c14e3766f"
 )
 _WHEEL_INVENTORY = (
     "projectkoios/applications/__init__.py",
     "projectkoios/applications/_optional_dependencies.py",
     "projectkoios/applications/py.typed",
     "projectkoios/applications/pdf_corpus_ingestion/__init__.py",
+    "projectkoios/applications/pdf_corpus_ingestion/citation_document_contracts.py",
+    "projectkoios/applications/pdf_corpus_ingestion/citation_document_custody.py",
+    "projectkoios/applications/pdf_corpus_ingestion/citation_document_registry.py",
+    "projectkoios/applications/pdf_corpus_ingestion/citation_document_service.py",
     "projectkoios/applications/pdf_corpus_ingestion/cli.py",
     "projectkoios/applications/pdf_corpus_ingestion/composition.py",
     "projectkoios/applications/pdf_corpus_ingestion/document_package.py",
@@ -300,6 +304,8 @@ with tempfile.TemporaryDirectory() as directory:
     ]
     sys.meta_path.insert(0, BlockScientificImports())
     from projectkoios.applications.pdf_corpus_ingestion import (
+        CitationDocumentIngestionService,
+        CitationDocumentRegistry,
         DocumentTranscriptProjection,
         EquationDisplayMode,
         EquationRenderConfirmation,
@@ -309,7 +315,9 @@ with tempfile.TemporaryDirectory() as directory:
         project_equation_review_queue,
     )
     assert (
-        DocumentTranscriptProjection
+        CitationDocumentIngestionService
+        and CitationDocumentRegistry
+        and DocumentTranscriptProjection
         and EquationDisplayMode
         and EquationRenderConfirmation
         and EquationReviewEvidenceBinding

@@ -43,6 +43,33 @@ is limited to this repository's current canonical package and transcript seam
 and is not a package migration, corpus discovery, API smoke test, or full-suite
 substitute.
 
+For the synchronous citation-document slice, verify all three exact local Git
+objects and the focused composition with:
+
+```bash
+PROJECTKOIOS_KSDFT_REPOSITORY=/absolute/path/to/ksdft2effmass \
+PROJECTKOIOS_REFERENCES_REPOSITORY=/absolute/path/to/projectkoios-references \
+PROJECTKOIOS_INGESTION_REPOSITORY=/absolute/path/to/projectkoios-ingestion \
+  scripts/verify_citation_document_ingestion.sh
+```
+
+The script verifies ksdft commit/tree
+`3ec21b4318020d700be671a8f220b2149b3d28c7` /
+`9953c0e99a28443426b5093852292f7cfbada2cc`, References commit/tree
+`f1ca7b4aee552af131ff7af7d1408d33dd338c93` /
+`b37672e36af13014dc25170be725fbf3f909c2d7`, and Ingestion commit/tree
+`be60640bec4fe15cc88b24161545eb1027ffbd2e` /
+`d386a1744f79463fd7cd0b3087ee5fc361e0f7d5`. It archives the two runtime owners,
+runs focused custody/link/extraction/package/transcript/registry tests plus the
+existing package and transcript tests, then runs Ruff, format checking, and
+strict Mypy. Focused fixtures consume citation-target inventory values from
+canonical `projectkoios.references.citations`, bibliography bindings from
+canonical `projectkoios.references.bibliography`, and link/projection/document
+values from `projectkoios.references.citation_document`; deprecated facade
+imports are not validation inputs. The script performs no checkout, install,
+network request, background work, Search indexing, calculator execution, or
+source-repository mutation.
+
 The cross-provider baseline is simulations commit
 `24dffe10c29e60afcd5fe07aaacb84921a41a43d`, tree
 `b7897a05de39072126e6162ce6e8b8fb25be5f31`. Archive that exact Git object for

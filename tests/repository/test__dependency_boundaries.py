@@ -8,6 +8,7 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 _PACKAGE_ROOT = _REPOSITORY_ROOT / "src/python/projectkoios/applications"
 _ALLOWED_PROJECT_PREFIXES = (
     "projectkoios.applications",
+    "projectkoios.base",
     "projectkoios.ingestion",
     "projectkoios.references",
     "projectkoios.simulations",

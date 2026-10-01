@@ -64,6 +64,22 @@ Hash-locked staged bytes use ingestion's non-writing byte API, and returned
 artifacts are written only through the authorized output root. Local Ollama
 identity and endpoint arguments never imply a hosted or fallback provider.
 
+The package also exposes a synchronous citation-document seam for an explicitly
+uploaded PDF. It requires declared MIME `application/pdf`, then jointly checks
+the header, bound, and hash while streaming into mode-0600 private custody under
+an exact local non-symlink mode-0700 root. It binds configured local authority
+and admission identities in a deterministic pre-link intent, consumes an exact
+neutral References link Result, publishes the deterministic package, verifies
+its exact transcript, and only then adds an immutable bounded registry entry.
+The final service is a `DataObjectActionizer` whose keyword-only `action` is the
+single behavior path. Results are terminal `SUCCEEDED`, `FAILED`, or
+`INDETERMINATE`; only success is transcript-ready, and exact replay never reruns
+extraction. Published state that cannot be exactly verified is indeterminate,
+while registry persistence errors propagate rather than fabricate an
+unpersisted Result. This seam does not invoke Search, Workflow, a queue, a
+background task, or an automatic retry, and it grants no rights, review,
+manuscript-use, or publication authority.
+
 ## Development
 
 The maintained package uses Python 3.14 and a `src/python` layout. Verification

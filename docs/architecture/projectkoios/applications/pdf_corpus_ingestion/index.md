@@ -56,6 +56,77 @@ resolution is immutable terminal-incomplete evidence for that plan/output; retry
 requires a newly composed plan and fresh output root. It is never reported as
 full processing completion.
 
+## Synchronous citation-document ingestion
+
+The citation-document slice composes one explicit uploaded PDF into the current
+document package without Search, Workflow, a queue, a background task, or an
+automatic retry. Its source-mirroring module documentation covers the
+[contracts](citation_document_contracts/index.md),
+[custody](citation_document_custody/index.md),
+[registry](citation_document_registry/index.md), and
+[service](citation_document_service/index.md). `PrivatePdfCustody.receive`
+accepts a bounded binary stream with declared MIME exactly `application/pdf`,
+checks that MIME, size, SHA-256, and the `%PDF-` header jointly and incrementally,
+writes only bounded chunks to a private temporary file, and atomically publishes
+an immutable mode-0600 blob under an exact local non-symlink mode-0700 root. The
+path-free receipt contains only the
+technical descriptor and deterministic receipt identity. It grants no rights,
+use, admission, review, bibliographic, or publication authority. Retained bytes
+are read from custody once for Ingestion's exact-bytes API.
+
+The receipt can create a positive, explicitly incomplete
+`CitationSourceDocumentObservation` for a target's exact literal key. A
+`CitationDocumentIngestionIntent` then binds the receipt, an exact replay-valid
+References projection Result and selected owner items, configured local-operator
+authority assertion and private-processing admission decision identities, and
+the complete extraction configuration and artifact limits. These are configured
+local policy identities, not proof of an authenticated remote user. The
+pre-effect intent exists before linkage. Target inventory types are consumed
+from canonical `projectkoios.references.citations`, bibliography bindings from
+`projectkoios.references.bibliography`, and document/projection/link contracts
+from `projectkoios.references.citation_document`. References receives only its
+opaque `pre_effect_intent_id`; its neutral link remains explicitly non-authorizing and
+has no dependency on Applications. The downstream request is derived from that
+intent plus the exact replay-valid References link Result, which keeps the
+identity graph acyclic.
+
+`CitationDocumentIngestionService` is a final `DataObjectActionizer`; its
+keyword-only `action(*, request)` is the single synchronous behavior path and
+`ingest(request)` delegates to it. It reads exact retained bytes, calls
+`extract_pdf_bytes_artifacts`, builds and publishes the current deterministic
+package, projects and verifies the exact transcript, and only then publishes an
+immutable registry Result. Terminal status is exactly `SUCCEEDED`, `FAILED`, or
+`INDETERMINATE`. Only `SUCCEEDED` carries package, extraction, and transcript
+readiness evidence. An existing package without an exact retained terminal
+Result, or transcript verification failure after publication, yields
+`INDETERMINATE` without re-extraction, verification promotion, republication, or
+mutation. Registry persistence failure propagates; an unpersisted terminal
+Result is never fabricated. Resolving indeterminate state requires a separately
+admitted reconciliation capability outside this slice.
+
+`CitationDocumentRegistry` stores at most 10,000 immutable, 64-KB terminal
+records under its own registry-contract envelope; the nested Result retains the
+complete neutral References link lineage under the ingestion contract. Its
+path-free `DataObjectModel` projection is ordered by exact request identity and
+lists successful document identities separately. Transcript lookup accepts only a
+registered successful document identity and re-verifies the current package and
+projection. Failed and indeterminate results remain visible as terminal evidence
+but are not documents. This registry is application-level evidence, not Search
+admission, a bibliography, a rights ledger, or a human-review decision.
+Contract IDs are canonical and unversioned; there is no `@version` suffix or
+parallel compatibility shape.
+
+The exact compatibility inputs for this slice are the ksdft citation-target
+commit/tree `3ec21b4318020d700be671a8f220b2149b3d28c7` /
+`9953c0e99a28443426b5093852292f7cfbada2cc`, References commit/tree
+`f1ca7b4aee552af131ff7af7d1408d33dd338c93` /
+`b37672e36af13014dc25170be725fbf3f909c2d7`, and Ingestion commit/tree
+`be60640bec4fe15cc88b24161545eb1027ffbd2e` /
+`d386a1744f79463fd7cd0b3087ee5fc361e0f7d5`. Literal target keys and source
+paths remain owner values and are never normalized through filesystem naming
+policy. These local Git identities, rather than the prototype `0.0.0` package
+labels, define the verified handoff.
+
 ## Document-centric deterministic package
 
 The bounded document-package candidate projects one exact source PDF, the
@@ -301,7 +372,8 @@ local candidates `projectkoios-references==0.0.0` and
 `projectkoios-simulations` or Physkit. Plane-wave DFT applications use the
 separate `simulations` extra and fail explicitly only when those capabilities
 are imported without it.
-Development provenance is pinned to references commit/tree
+Legacy discovery/document-transcript development provenance remains pinned in
+`plan.py` to references commit/tree
 `b7581cb5f8a619883ecd73ed1d9354b85e5f57fd` /
 `41c0165e2d4cb73ca41e2bb2acace1b77b7544d9` and ingestion commit/tree
 `be60640bec4fe15cc88b24161545eb1027ffbd2e` /

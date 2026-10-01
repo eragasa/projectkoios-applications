@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os
 import subprocess
 from pathlib import Path
 
@@ -17,12 +18,22 @@ _ROOT = Path(__file__).resolve().parents[2]
 _PACKAGE = _ROOT / "src/python/projectkoios/applications/pdf_corpus_ingestion"
 _COMPONENTS = (
     (
-        Path("/Users/eugene/repos/projectkoios-references"),
+        Path(
+            os.environ.get(
+                "PROJECTKOIOS_REFERENCES_REPOSITORY",
+                _ROOT.parent / "projectkoios-references",
+            )
+        ),
         REFERENCES_SOURCE_COMMIT,
         REFERENCES_SOURCE_TREE,
     ),
     (
-        Path("/Users/eugene/repos/projectkoios-ingestion"),
+        Path(
+            os.environ.get(
+                "PROJECTKOIOS_INGESTION_REPOSITORY",
+                _ROOT.parent / "projectkoios-ingestion",
+            )
+        ),
         INGESTION_SOURCE_COMMIT,
         INGESTION_SOURCE_TREE,
     ),
@@ -44,10 +55,9 @@ def test_capability_has_no_owner_private_cli_or_process_imports() -> None:
     forbidden_names = {
         "CanonicalAssetAuthorization",
         "CanonicalAsset",
-        "citekey",
         "_resolve_items",
     }
-    for path in sorted(_PACKAGE.glob("*.py")):
+    for path in sorted(_PACKAGE.rglob("*.py")):
         text = path.read_text()
         tree = ast.parse(text, filename=str(path))
         imported = {
@@ -87,6 +97,18 @@ def test_document_package_and_transcript_seams_are_unversioned() -> None:
     assert "DOCUMENT_INGESTION_MANIFEST_SCHEMA_VERSION" not in public_exports
     assert "DOCUMENT_TRANSCRIPT_SCHEMA_VERSION" not in public_exports
     assert "DocumentTranscriptUnsupportedPackageError" not in public_exports
+
+
+def test_citation_document_slice_has_no_search_workflow_or_background_runtime() -> None:
+    text = "\n".join(path.read_text() for path in sorted(_PACKAGE.rglob("*.py")))
+    assert "projectkoios.search" not in text
+    assert "projectkoios.workflow" not in text
+    assert "asyncio" not in text
+    assert "threading" not in text
+    assert "multiprocessing" not in text
+    assert "run_pdf_corpus_ingestion" not in "\n".join(
+        path.read_text() for path in sorted(_PACKAGE.glob("citation_document_*.py"))
+    )
 
 
 def test_runner_uses_bound_filesystem_primitives() -> None:
