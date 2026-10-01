@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os
 import subprocess
 from pathlib import Path
 
@@ -17,12 +18,22 @@ _ROOT = Path(__file__).resolve().parents[2]
 _PACKAGE = _ROOT / "src/python/projectkoios/applications/pdf_corpus_ingestion"
 _COMPONENTS = (
     (
-        Path("/Users/eugene/repos/projectkoios-references"),
+        Path(
+            os.environ.get(
+                "PROJECTKOIOS_REFERENCES_REPOSITORY",
+                _ROOT.parent / "projectkoios-references",
+            )
+        ),
         REFERENCES_SOURCE_COMMIT,
         REFERENCES_SOURCE_TREE,
     ),
     (
-        Path("/Users/eugene/repos/projectkoios-ingestion"),
+        Path(
+            os.environ.get(
+                "PROJECTKOIOS_INGESTION_REPOSITORY",
+                _ROOT.parent / "projectkoios-ingestion",
+            )
+        ),
         INGESTION_SOURCE_COMMIT,
         INGESTION_SOURCE_TREE,
     ),

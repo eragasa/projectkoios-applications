@@ -43,18 +43,12 @@ class PrivatePdfCustody:
     max_pdf_bytes: int = MAX_CITATION_DOCUMENT_PDF_BYTES
 
     def __post_init__(self) -> None:
-        if not isinstance(self.root, AuthorizedRoot):
-            raise TypeError("root must be an AuthorizedRoot")
-        if self.root.preflight_evidence.storage_class is not RootStorageClass.LOCAL:
-            raise CitationDocumentCustodyError(
-                "private PDF custody must use local storage"
-            )
+        _require_private_root(self.root, field_name="custody root")
         if (
             type(self.max_pdf_bytes) is not int
             or not 0 < self.max_pdf_bytes <= MAX_CITATION_DOCUMENT_PDF_BYTES
         ):
             raise ValueError("max_pdf_bytes is outside the application bound")
-        _require_private_root(self.root)
 
     @classmethod
     def create(
@@ -85,8 +79,18 @@ class PrivatePdfCustody:
         )
         return cls(root=root, max_pdf_bytes=max_pdf_bytes)
 
-    def receive(self, source: BinaryIO) -> CitationDocumentReceipt:
-        """Stream, validate, hash, and atomically retain one exact PDF."""
+    def receive(
+        self,
+        source: BinaryIO,
+        *,
+        media_type: str,
+    ) -> CitationDocumentReceipt:
+        """Validate declared MIME and atomically retain one exact PDF stream."""
+        _require_private_root(self.root, field_name="custody root")
+        if type(media_type) is not str or media_type != "application/pdf":
+            raise CitationDocumentCustodyError(
+                "declared media_type must be application/pdf"
+            )
         if not callable(getattr(source, "read", None)):
             raise TypeError("source must be a readable binary stream")
         sha256, byte_size = _receive_into_root(
@@ -98,16 +102,33 @@ class PrivatePdfCustody:
             source_document_id=f"private-pdf:sha256:{sha256}",
             sha256=sha256,
             byte_size=byte_size,
+            media_type=media_type,
         )
         return CitationDocumentReceipt(source_document=descriptor)
 
     def read_for_ingestion(self, receipt: CitationDocumentReceipt) -> bytes:
         """Read retained bytes once through the bounded owner primitive."""
+        _require_private_root(self.root, field_name="custody root")
         if type(receipt) is not CitationDocumentReceipt:
             raise TypeError("receipt must be a CitationDocumentReceipt")
+        receipt.validate_identity()
         descriptor = receipt.source_document
+        relative = _blob_name(descriptor.sha256)
+        try:
+            metadata = self.root.child_path(relative).lstat()
+        except OSError as error:
+            raise CitationDocumentCustodyError("retained PDF is unavailable") from error
+        if (
+            metadata.st_dev != self.root.device
+            or not stat.S_ISREG(metadata.st_mode)
+            or stat.S_IMODE(metadata.st_mode) != 0o600
+            or metadata.st_size != descriptor.byte_size
+        ):
+            raise CitationDocumentCustodyError(
+                "retained PDF is not an exact mode-0600 regular file"
+            )
         data = self.root.read_bytes(
-            _blob_name(descriptor.sha256),
+            relative,
             max_bytes=self.max_pdf_bytes,
         )
         # The Ingestion call also validates these exact expectations.  This
@@ -127,13 +148,19 @@ def _blob_name(sha256: str) -> str:
     return f"citation-document-blob-{sha256}.pdf"
 
 
-def _require_private_root(root: AuthorizedRoot) -> None:
+def _require_private_root(
+    root: AuthorizedRoot,
+    *,
+    field_name: str,
+) -> None:
+    if type(root) is not AuthorizedRoot:
+        raise TypeError(f"{field_name} must be an exact AuthorizedRoot")
+    if root.preflight_evidence.storage_class is not RootStorageClass.LOCAL:
+        raise CitationDocumentCustodyError(f"{field_name} must use local storage")
     try:
         metadata = root.path.stat(follow_symlinks=False)
     except OSError as error:
-        raise CitationDocumentCustodyError(
-            "private PDF custody root is unavailable"
-        ) from error
+        raise CitationDocumentCustodyError(f"{field_name} is unavailable") from error
     if (
         not stat.S_ISDIR(metadata.st_mode)
         or metadata.st_dev != root.device
@@ -141,8 +168,41 @@ def _require_private_root(root: AuthorizedRoot) -> None:
         or stat.S_IMODE(metadata.st_mode) != 0o700
     ):
         raise CitationDocumentCustodyError(
-            "private PDF custody root must retain exact mode 0700 and identity"
+            f"{field_name} must retain exact mode 0700 and identity"
         )
+
+
+def _require_mode_0600_files(
+    root: AuthorizedRoot,
+    *,
+    field_name: str,
+    max_files: int = 50_000,
+) -> None:
+    _require_private_root(root, field_name=field_name)
+    try:
+        paths = root.iter_files(
+            suffix="",
+            recursive=True,
+            reject_directories=False,
+            max_files=max_files,
+            max_entries=max_files + 10_000,
+            max_depth=8,
+        )
+        for relative in paths:
+            metadata = root.child_path(relative).lstat()
+            if (
+                not stat.S_ISREG(metadata.st_mode)
+                or stat.S_IMODE(metadata.st_mode) != 0o600
+            ):
+                raise CitationDocumentCustodyError(
+                    f"{field_name} retained files must be regular mode-0600 files"
+                )
+    except CitationDocumentCustodyError:
+        raise
+    except (OSError, ValueError) as error:
+        raise CitationDocumentCustodyError(
+            f"{field_name} retained file inventory is unsafe"
+        ) from error
 
 
 def _open_root(root: AuthorizedRoot) -> int:

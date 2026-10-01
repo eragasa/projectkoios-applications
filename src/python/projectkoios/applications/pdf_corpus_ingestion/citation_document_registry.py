@@ -5,10 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import stat
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import final
 
+from projectkoios.base import DataObjectModel
 from projectkoios.references import AuthorizedRoot
 
 from .citation_document_contracts import (
@@ -17,6 +19,10 @@ from .citation_document_contracts import (
     CitationDocumentIngestionResult,
     CitationDocumentTerminalStatus,
     canonical_json,
+)
+from .citation_document_custody import (
+    _require_mode_0600_files,
+    _require_private_root,
 )
 from .transcript import (
     DocumentTranscriptProjection,
@@ -38,16 +44,26 @@ class CitationDocumentRegistryLimitError(CitationDocumentRegistryError):
 
 
 @final
-@dataclass(frozen=True, slots=True)
-class CitationDocumentRegistryProjection:
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CitationDocumentRegistryProjection(DataObjectModel):
     """Path-free bounded projection of every terminal request result."""
 
     results: tuple[CitationDocumentIngestionResult, ...]
     successful_document_ids: tuple[str, ...]
-    projection_id: str = field(init=False)
     contract_id: str = CITATION_DOCUMENT_REGISTRY_CONTRACT_ID
+    projection_id: str = field(init=False)
 
     def __post_init__(self) -> None:
+        self._validate_inputs()
+        object.__setattr__(
+            self,
+            "projection_id",
+            _projection_id(self.identity_payload()),
+        )
+
+    def _validate_inputs(self) -> None:
+        if self.contract_id != CITATION_DOCUMENT_REGISTRY_CONTRACT_ID:
+            raise ValueError("registry projection contract identity is invalid")
         if (
             type(self.results) is not tuple
             or len(self.results) > MAX_CITATION_DOCUMENT_REGISTRY_ENTRIES
@@ -57,6 +73,8 @@ class CitationDocumentRegistryProjection:
             )
         ):
             raise TypeError("registry projection results are invalid")
+        for result in self.results:
+            result.validate_identity()
         if tuple(item.request_id for item in self.results) != tuple(
             sorted({item.request_id for item in self.results})
         ):
@@ -72,50 +90,57 @@ class CitationDocumentRegistryProjection:
             expected_documents
         ) != len(set(expected_documents)):
             raise ValueError("registry successful document identities are invalid")
-        payload = {
+
+    def identity_payload(self) -> dict[str, object]:
+        return {
             "contract_id": self.contract_id,
             "result_ids": [item.result_id for item in self.results],
             "successful_document_ids": list(self.successful_document_ids),
         }
-        canonical = json.dumps(
-            payload,
-            allow_nan=False,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode("utf-8")
-        object.__setattr__(
-            self,
-            "projection_id",
-            "citation-document-registry-projection:sha256:"
-            + hashlib.sha256(canonical).hexdigest(),
+
+    def validate_identity(self) -> None:
+        if type(self) is not CitationDocumentRegistryProjection:
+            raise TypeError(
+                "projection must be an exact CitationDocumentRegistryProjection"
+            )
+        self._validate_inputs()
+        rebuilt = CitationDocumentRegistryProjection(
+            results=self.results,
+            successful_document_ids=self.successful_document_ids,
+            contract_id=self.contract_id,
         )
+        if rebuilt != self:
+            raise ValueError("registry projection does not match replay")
 
 
 @final
 @dataclass(frozen=True, slots=True)
 class CitationDocumentRegistry:
-    """One local immutable terminal-result repository."""
+    """One private local immutable terminal-result repository."""
 
     root: AuthorizedRoot
     max_entries: int = MAX_CITATION_DOCUMENT_REGISTRY_ENTRIES
 
     def __post_init__(self) -> None:
-        if not isinstance(self.root, AuthorizedRoot):
-            raise TypeError("root must be an AuthorizedRoot")
+        _require_private_root(self.root, field_name="registry root")
         if (
             type(self.max_entries) is not int
             or not 0 < self.max_entries <= MAX_CITATION_DOCUMENT_REGISTRY_ENTRIES
         ):
             raise ValueError("max_entries is outside the registry bound")
 
+    def _validate_root(self) -> None:
+        _require_private_root(self.root, field_name="registry root")
+
     def lookup(
         self,
         request: CitationDocumentIngestionRequest,
     ) -> CitationDocumentIngestionResult | None:
         """Load and bind one exact terminal replay result."""
+        self._validate_root()
         if type(request) is not CitationDocumentIngestionRequest:
             raise TypeError("request must be a CitationDocumentIngestionRequest")
+        request.validate_identity()
         relative = _record_path(request.request_id)
         state = self.root.state(relative)
         if state == "missing":
@@ -134,11 +159,19 @@ class CitationDocumentRegistry:
         result: CitationDocumentIngestionResult,
     ) -> CitationDocumentIngestionResult:
         """Publish one terminal result exactly once, or verify exact replay."""
+        self._validate_root()
+        if type(request) is not CitationDocumentIngestionRequest:
+            raise TypeError("request must be a CitationDocumentIngestionRequest")
         if type(result) is not CitationDocumentIngestionResult:
             raise TypeError("result must be a CitationDocumentIngestionResult")
+        request.validate_identity()
         result.validate_request(request)
         relative = _record_path(request.request_id)
-        content = canonical_json(result.record_payload())
+        envelope = {
+            "contract_id": CITATION_DOCUMENT_REGISTRY_CONTRACT_ID,
+            "result": result.record_payload(),
+        }
+        content = canonical_json(envelope)
         if len(content) > MAX_CITATION_DOCUMENT_REGISTRY_RECORD_BYTES:
             raise CitationDocumentRegistryLimitError(
                 "registry record exceeds its byte bound"
@@ -172,8 +205,9 @@ class CitationDocumentRegistry:
 
     def project(self) -> CitationDocumentRegistryProjection:
         """Return all bounded terminal results in canonical request order."""
+        self._validate_root()
         results = tuple(self._read(path) for path in self._paths())
-        return CitationDocumentRegistryProjection(
+        projection = CitationDocumentRegistryProjection(
             results=results,
             successful_document_ids=tuple(
                 sorted(
@@ -183,6 +217,8 @@ class CitationDocumentRegistry:
                 )
             ),
         )
+        projection.validate_identity()
+        return projection
 
     def lookup_document(
         self,
@@ -210,6 +246,15 @@ class CitationDocumentRegistry:
         package_root: AuthorizedRoot,
     ) -> DocumentTranscriptProjection:
         """Verify and return one registered successful transcript."""
+        _require_private_root(package_root, field_name="package root")
+        if (
+            package_root.path == self.root.path
+            or package_root.path.is_relative_to(self.root.path)
+            or self.root.path.is_relative_to(package_root.path)
+        ):
+            raise CitationDocumentRegistryError(
+                "package root and registry root must be disjoint and non-nested"
+            )
         result = self.lookup_document(document_id)
         transcript = _project_package(package_root, document_id)
         if (
@@ -247,12 +292,20 @@ class CitationDocumentRegistry:
 
     def _read(self, relative: PurePosixPath) -> CitationDocumentIngestionResult:
         try:
+            _require_mode_0600(self.root, relative)
             content = self.root.read_bytes(
                 relative,
                 max_bytes=MAX_CITATION_DOCUMENT_REGISTRY_RECORD_BYTES,
             )
             value = json.loads(content)
-            result = CitationDocumentIngestionResult.from_record(value)
+            if (
+                not isinstance(value, dict)
+                or set(value) != {"contract_id", "result"}
+                or value.get("contract_id") != CITATION_DOCUMENT_REGISTRY_CONTRACT_ID
+                or content != canonical_json(value)
+            ):
+                raise ValueError("registry envelope is invalid")
+            result = CitationDocumentIngestionResult.from_record(value.get("result"))
         except CitationDocumentRegistryError:
             raise
         except (
@@ -283,8 +336,8 @@ def _project_package(
     package_root: AuthorizedRoot,
     document_id: str,
 ) -> DocumentTranscriptProjection:
-    if not isinstance(package_root, AuthorizedRoot):
-        raise TypeError("package_root must be an AuthorizedRoot")
+    if type(package_root) is not AuthorizedRoot:
+        raise TypeError("package_root must be an exact AuthorizedRoot")
     if package_root.state(document_id) != "directory":
         raise CitationDocumentRegistryError(
             "registered document package is unavailable"
@@ -296,4 +349,34 @@ def _project_package(
         storage_class=package_root.preflight_evidence.storage_class,
         placeholder_probe=package_root.placeholder_probe,
     )
+    _require_mode_0600_files(
+        document_root,
+        field_name="document package root",
+    )
     return project_document_transcript(document_root=document_root)
+
+
+def _require_mode_0600(root: AuthorizedRoot, relative: PurePosixPath) -> None:
+    metadata = root.child_path(relative).stat(follow_symlinks=False)
+    if (
+        metadata.st_dev != root.device
+        or not stat.S_ISREG(metadata.st_mode)
+        or stat.S_IMODE(metadata.st_mode) != 0o600
+    ):
+        raise CitationDocumentRegistryError(
+            "registry record must retain exact mode 0600"
+        )
+
+
+def _projection_id(payload: object) -> str:
+    canonical = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return (
+        "citation-document-registry-projection:sha256:"
+        + hashlib.sha256(canonical).hexdigest()
+    )

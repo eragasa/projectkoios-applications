@@ -9,13 +9,21 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import final
 
+from projectkoios.base import (
+    DataObjectActionRequest,
+    DataObjectActionResult,
+    DataObjectModel,
+)
 from projectkoios.ingestion import (
     PdfExtractionArtifactLimits,
     PdfExtractionConfiguration,
 )
 from projectkoios.references.citation_document import (
+    CITATION_SOURCE_DOCUMENT_LINK_CONTRACT_ID,
+    CITATION_SOURCE_DOCUMENT_LINKER_NAME,
     CitationDocumentProjectionResult,
     CitationSourceDocumentDescriptor,
+    CitationSourceDocumentLink,
     CitationSourceDocumentLinkRequest,
     CitationSourceDocumentLinkResult,
     CitationSourceDocumentObservation,
@@ -36,8 +44,8 @@ CITATION_DOCUMENT_REGISTRY_CONTRACT_ID = (
 
 KSDFT_CITATION_TARGET_SOURCE_COMMIT = "3ec21b4318020d700be671a8f220b2149b3d28c7"
 KSDFT_CITATION_TARGET_SOURCE_TREE = "9953c0e99a28443426b5093852292f7cfbada2cc"
-REFERENCES_CITATION_DOCUMENT_SOURCE_COMMIT = "b51b04a7aa914d48b123de2fa50a181e30a2374d"
-REFERENCES_CITATION_DOCUMENT_SOURCE_TREE = "bd2be6764cd1ec9be080023a62c14db2c23bfdf8"
+REFERENCES_CITATION_DOCUMENT_SOURCE_COMMIT = "f1ca7b4aee552af131ff7af7d1408d33dd338c93"
+REFERENCES_CITATION_DOCUMENT_SOURCE_TREE = "b37672e36af13014dc25170be725fbf3f909c2d7"
 INGESTION_DOCUMENT_PACKAGE_SOURCE_COMMIT = "be60640bec4fe15cc88b24161545eb1027ffbd2e"
 INGESTION_DOCUMENT_PACKAGE_SOURCE_TREE = "d386a1744f79463fd7cd0b3087ee5fc361e0f7d5"
 
@@ -61,34 +69,44 @@ class CitationDocumentFailureCode(StrEnum):
     PUBLICATION_FAILED = "PUBLICATION_FAILED"
     PUBLICATION_INDETERMINATE = "PUBLICATION_INDETERMINATE"
     TRANSCRIPT_VERIFICATION_FAILED = "TRANSCRIPT_VERIFICATION_FAILED"
-    REGISTRY_CONFLICT = "REGISTRY_CONFLICT"
 
 
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)
-class CitationDocumentReceipt:
+class CitationDocumentReceipt(DataObjectModel):
     """Technical custody receipt; it grants no rights or processing authority."""
 
     source_document: CitationSourceDocumentDescriptor
     receipt_id: str = field(init=False)
 
     def __post_init__(self) -> None:
+        self._validate_inputs()
+        object.__setattr__(
+            self,
+            "receipt_id",
+            _id("citation-document-receipt", self.identity_payload()),
+        )
+
+    def _validate_inputs(self) -> None:
         if type(self.source_document) is not CitationSourceDocumentDescriptor:
             raise TypeError(
                 "source_document must be a CitationSourceDocumentDescriptor"
             )
         self.source_document.validate_identity()
-        object.__setattr__(
-            self,
-            "receipt_id",
-            _id(
-                "citation-document-receipt",
-                {
-                    "contract_id": CITATION_DOCUMENT_RECEIPT_CONTRACT_ID,
-                    "source_document": self.source_document.record_payload(),
-                },
-            ),
-        )
+
+    def identity_payload(self) -> dict[str, object]:
+        return {
+            "contract_id": CITATION_DOCUMENT_RECEIPT_CONTRACT_ID,
+            "source_document": self.source_document.record_payload(),
+        }
+
+    def validate_identity(self) -> None:
+        if type(self) is not CitationDocumentReceipt:
+            raise TypeError("receipt must be an exact CitationDocumentReceipt")
+        self._validate_inputs()
+        rebuilt = CitationDocumentReceipt(source_document=self.source_document)
+        if rebuilt != self:
+            raise ValueError("citation document receipt does not match replay")
 
     def observation(
         self,
@@ -97,6 +115,7 @@ class CitationDocumentReceipt:
         literal_citekey: str,
     ) -> CitationSourceDocumentObservation:
         """Build explicit positive availability evidence for References."""
+        self.validate_identity()
         return CitationSourceDocumentObservation(
             target_snapshot_id=target_snapshot_id,
             literal_citekey=literal_citekey,
@@ -109,7 +128,7 @@ class CitationDocumentReceipt:
 
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)
-class CitationDocumentIngestionIntent:
+class CitationDocumentIngestionIntent(DataObjectModel):
     """Deterministic pre-link intent under configured local authority."""
 
     receipt: CitationDocumentReceipt
@@ -123,8 +142,18 @@ class CitationDocumentIngestionIntent:
     intent_id: str = field(init=False)
 
     def __post_init__(self) -> None:
+        self._validate_inputs()
+        object.__setattr__(
+            self,
+            "intent_id",
+            _id("citation-document-ingestion-intent", self.identity_payload()),
+        )
+        self._link_request()
+
+    def _validate_inputs(self) -> None:
         if type(self.receipt) is not CitationDocumentReceipt:
             raise TypeError("receipt must be a CitationDocumentReceipt")
+        self.receipt.validate_identity()
         if type(self.projection_result) is not CitationDocumentProjectionResult:
             raise TypeError(
                 "projection_result must be a CitationDocumentProjectionResult"
@@ -146,15 +175,6 @@ class CitationDocumentIngestionIntent:
             self.local_processing_admission_decision_id,
             "local_processing_admission_decision_id",
         )
-        payload = self.identity_payload()
-        object.__setattr__(
-            self,
-            "intent_id",
-            _id("citation-document-ingestion-intent", payload),
-        )
-        # The owner request is the semantic validator for exact item, identity,
-        # and source-document correlation.  Constructing it performs no effect.
-        self.link_request()
 
     def identity_payload(self) -> dict[str, object]:
         configuration = self.extraction_configuration
@@ -188,20 +208,45 @@ class CitationDocumentIngestionIntent:
             },
         }
 
-    def link_request(self) -> CitationSourceDocumentLinkRequest:
-        """Return the exact neutral References request bound to this intent."""
+    def validate_identity(self) -> None:
+        if type(self) is not CitationDocumentIngestionIntent:
+            raise TypeError("intent must be an exact CitationDocumentIngestionIntent")
+        self._validate_inputs()
+        rebuilt = CitationDocumentIngestionIntent(
+            receipt=self.receipt,
+            projection_result=self.projection_result,
+            projection_item_id=self.projection_item_id,
+            identity_item_id=self.identity_item_id,
+            local_processing_authority_assertion_id=(
+                self.local_processing_authority_assertion_id
+            ),
+            local_processing_admission_decision_id=(
+                self.local_processing_admission_decision_id
+            ),
+            extraction_configuration=self.extraction_configuration,
+            artifact_limits=self.artifact_limits,
+        )
+        if rebuilt != self:
+            raise ValueError("citation document intent does not match replay")
+
+    def _link_request(self) -> CitationSourceDocumentLinkRequest:
         return CitationSourceDocumentLinkRequest(
             projection_result=self.projection_result,
             item_id=self.projection_item_id,
             identity_item_id=self.identity_item_id,
-            source_document_id=(self.receipt.source_document.source_document_id),
+            source_document_id=self.receipt.source_document.source_document_id,
             pre_effect_intent_id=self.intent_id,
         )
+
+    def link_request(self) -> CitationSourceDocumentLinkRequest:
+        """Return the exact neutral References request bound to this intent."""
+        self.validate_identity()
+        return self._link_request()
 
 
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)
-class CitationDocumentIngestionRequest:
+class CitationDocumentIngestionRequest(DataObjectActionRequest):
     """Exact synchronous effect request after neutral owner linkage."""
 
     intent: CitationDocumentIngestionIntent
@@ -209,10 +254,28 @@ class CitationDocumentIngestionRequest:
     request_id: str = field(init=False)
 
     def __post_init__(self) -> None:
+        self._validate_inputs()
+        object.__setattr__(
+            self,
+            "request_id",
+            _id("citation-document-ingestion-request", self.identity_payload()),
+        )
+
+    def _validate_inputs(self) -> None:
         if type(self.intent) is not CitationDocumentIngestionIntent:
             raise TypeError("intent must be a CitationDocumentIngestionIntent")
+        self.intent.validate_identity()
         if type(self.link_result) is not CitationSourceDocumentLinkResult:
             raise TypeError("link_result must be a CitationSourceDocumentLinkResult")
+        if type(self.link_result.request) is not CitationSourceDocumentLinkRequest:
+            raise TypeError("link_result request must use its exact runtime type")
+        if type(self.link_result.link) is not CitationSourceDocumentLink:
+            raise TypeError("link_result link must use its exact runtime type")
+        if (
+            type(self.link_result.link.source_document)
+            is not CitationSourceDocumentDescriptor
+        ):
+            raise TypeError("linked source document must use its exact runtime type")
         self.link_result.validate_identity()
         expected = self.intent.link_request()
         if self.link_result.request != expected:
@@ -223,19 +286,25 @@ class CitationDocumentIngestionRequest:
             or link.source_document != self.intent.receipt.source_document
         ):
             raise ValueError("link result correlation is inconsistent")
-        object.__setattr__(
-            self,
-            "request_id",
-            _id(
-                "citation-document-ingestion-request",
-                {
-                    "contract_id": CITATION_DOCUMENT_INGESTION_CONTRACT_ID,
-                    "intent_id": self.intent.intent_id,
-                    "link_result_id": self.link_result.result_id,
-                    "link_id": link.link_id,
-                },
-            ),
+
+    def identity_payload(self) -> dict[str, object]:
+        return {
+            "contract_id": CITATION_DOCUMENT_INGESTION_CONTRACT_ID,
+            "intent_id": self.intent.intent_id,
+            "link_result_id": self.link_result.result_id,
+            "link_id": self.link_result.link.link_id,
+        }
+
+    def validate_identity(self) -> None:
+        if type(self) is not CitationDocumentIngestionRequest:
+            raise TypeError("request must be an exact CitationDocumentIngestionRequest")
+        self._validate_inputs()
+        rebuilt = CitationDocumentIngestionRequest(
+            intent=self.intent,
+            link_result=self.link_result,
         )
+        if rebuilt != self:
+            raise ValueError("citation document request does not match replay")
 
     @property
     def document_id(self) -> str:
@@ -244,13 +313,13 @@ class CitationDocumentIngestionRequest:
 
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)
-class CitationDocumentIngestionResult:
-    """Path-free terminal result retained for exact replay."""
+class CitationDocumentIngestionResult(DataObjectActionResult):
+    """Path-free restart-sufficient terminal result retained for replay."""
 
     request_id: str
     intent_id: str
     link_result_id: str
-    link_id: str
+    source_document_link: CitationSourceDocumentLink
     receipt_id: str
     source_document_descriptor_id: str
     document_id: str
@@ -264,16 +333,60 @@ class CitationDocumentIngestionResult:
     result_id: str = field(init=False)
 
     def __post_init__(self) -> None:
+        self._validate_inputs()
+        object.__setattr__(
+            self,
+            "result_id",
+            _id("citation-document-ingestion-result", self.identity_payload()),
+        )
+
+    @property
+    def link_id(self) -> str:
+        return self.source_document_link.link_id
+
+    @property
+    def transcript_ready(self) -> bool:
+        return self.status is CitationDocumentTerminalStatus.SUCCEEDED
+
+    def _validate_inputs(self) -> None:
         for value, name in (
             (self.request_id, "request_id"),
             (self.intent_id, "intent_id"),
             (self.link_result_id, "link_result_id"),
-            (self.link_id, "link_id"),
             (self.receipt_id, "receipt_id"),
             (self.source_document_descriptor_id, "source_document_descriptor_id"),
             (self.document_id, "document_id"),
         ):
             _opaque(value, name)
+        if type(self.source_document_link) is not CitationSourceDocumentLink:
+            raise TypeError("source_document_link must be a CitationSourceDocumentLink")
+        if (
+            type(self.source_document_link.source_document)
+            is not CitationSourceDocumentDescriptor
+        ):
+            raise TypeError("linked source document must use its exact runtime type")
+        self.source_document_link.validate_identity()
+        expected_link_result_id = _id(
+            "citation-source-document-link-result",
+            {
+                "contract_id": CITATION_SOURCE_DOCUMENT_LINK_CONTRACT_ID,
+                "linker": CITATION_SOURCE_DOCUMENT_LINKER_NAME,
+                "request_id": self.source_document_link.creating_request_id,
+                "link_id": self.source_document_link.link_id,
+            },
+        )
+        expected_receipt_id = CitationDocumentReceipt(
+            source_document=self.source_document_link.source_document
+        ).receipt_id
+        if (
+            self.link_result_id != expected_link_result_id
+            or self.source_document_link.pre_effect_intent_id != self.intent_id
+            or self.source_document_link.source_document.descriptor_id
+            != self.source_document_descriptor_id
+            or self.receipt_id != expected_receipt_id
+            or self.document_id != f"citation-document-{_digest_tail(self.request_id)}"
+        ):
+            raise ValueError("terminal link lineage is inconsistent")
         if type(self.status) is not CitationDocumentTerminalStatus:
             raise TypeError("status must be a CitationDocumentTerminalStatus")
         success_values = (
@@ -310,47 +423,14 @@ class CitationDocumentIngestionResult:
             )
         elif type(self.failure_code) is not CitationDocumentFailureCode:
             raise TypeError("failure_code must be a CitationDocumentFailureCode")
-        object.__setattr__(
-            self,
-            "result_id",
-            _id("citation-document-ingestion-result", self.record_payload(False)),
-        )
 
-    @property
-    def transcript_ready(self) -> bool:
-        return self.status is CitationDocumentTerminalStatus.SUCCEEDED
-
-    def validate_request(self, request: CitationDocumentIngestionRequest) -> None:
-        if type(request) is not CitationDocumentIngestionRequest:
-            raise TypeError("request must be a CitationDocumentIngestionRequest")
-        expected = (
-            request.request_id,
-            request.intent.intent_id,
-            request.link_result.result_id,
-            request.link_result.link.link_id,
-            request.intent.receipt.receipt_id,
-            request.intent.receipt.source_document.descriptor_id,
-            request.document_id,
-        )
-        actual = (
-            self.request_id,
-            self.intent_id,
-            self.link_result_id,
-            self.link_id,
-            self.receipt_id,
-            self.source_document_descriptor_id,
-            self.document_id,
-        )
-        if actual != expected:
-            raise ValueError("terminal result does not match the exact request")
-
-    def record_payload(self, include_result_id: bool = True) -> dict[str, object]:
-        payload: dict[str, object] = {
-            "contract_id": CITATION_DOCUMENT_REGISTRY_CONTRACT_ID,
+    def identity_payload(self) -> dict[str, object]:
+        return {
+            "contract_id": CITATION_DOCUMENT_INGESTION_CONTRACT_ID,
             "request_id": self.request_id,
             "intent_id": self.intent_id,
             "link_result_id": self.link_result_id,
-            "link_id": self.link_id,
+            "source_document_link": _link_record(self.source_document_link),
             "receipt_id": self.receipt_id,
             "source_document_descriptor_id": self.source_document_descriptor_id,
             "document_id": self.document_id,
@@ -364,20 +444,73 @@ class CitationDocumentIngestionResult:
             "physical_page_count": self.physical_page_count,
             "publication_action": self.publication_action,
         }
-        if include_result_id:
-            payload["result_id"] = self.result_id
+
+    def validate_identity(self) -> None:
+        if type(self) is not CitationDocumentIngestionResult:
+            raise TypeError("result must be an exact CitationDocumentIngestionResult")
+        self._validate_inputs()
+        rebuilt = CitationDocumentIngestionResult(
+            request_id=self.request_id,
+            intent_id=self.intent_id,
+            link_result_id=self.link_result_id,
+            source_document_link=self.source_document_link,
+            receipt_id=self.receipt_id,
+            source_document_descriptor_id=self.source_document_descriptor_id,
+            document_id=self.document_id,
+            status=self.status,
+            failure_code=self.failure_code,
+            extraction_bundle_id=self.extraction_bundle_id,
+            package_id=self.package_id,
+            transcript_projection_id=self.transcript_projection_id,
+            physical_page_count=self.physical_page_count,
+            publication_action=self.publication_action,
+        )
+        if rebuilt != self:
+            raise ValueError("citation document result does not match replay")
+
+    def validate_request(self, request: CitationDocumentIngestionRequest) -> None:
+        if type(request) is not CitationDocumentIngestionRequest:
+            raise TypeError("request must be a CitationDocumentIngestionRequest")
+        request.validate_identity()
+        self.validate_identity()
+        expected = (
+            request.request_id,
+            request.intent.intent_id,
+            request.link_result.result_id,
+            request.link_result.link,
+            request.intent.receipt.receipt_id,
+            request.intent.receipt.source_document.descriptor_id,
+            request.document_id,
+        )
+        actual = (
+            self.request_id,
+            self.intent_id,
+            self.link_result_id,
+            self.source_document_link,
+            self.receipt_id,
+            self.source_document_descriptor_id,
+            self.document_id,
+        )
+        if actual != expected:
+            raise ValueError("terminal result does not match the exact request")
+
+    def record_payload(self) -> dict[str, object]:
+        payload = self.identity_payload()
+        payload["result_id"] = self.result_id
         return payload
 
     @classmethod
     def from_record(cls, value: object) -> CitationDocumentIngestionResult:
+        if cls is not CitationDocumentIngestionResult:
+            raise TypeError("result replay requires the exact result class")
         if not isinstance(value, dict):
-            raise ValueError("registry record must be an object")
+            raise ValueError("ingestion result record must be an object")
         expected = {
             "contract_id",
             "request_id",
             "intent_id",
             "link_result_id",
-            "link_id",
+            "source_document_link",
             "receipt_id",
             "source_document_descriptor_id",
             "document_id",
@@ -391,15 +524,15 @@ class CitationDocumentIngestionResult:
             "result_id",
         }
         if set(value) != expected or value.get("contract_id") != (
-            CITATION_DOCUMENT_REGISTRY_CONTRACT_ID
+            CITATION_DOCUMENT_INGESTION_CONTRACT_ID
         ):
-            raise ValueError("registry record shape is invalid")
+            raise ValueError("ingestion result record shape is invalid")
         raw_failure = value.get("failure_code")
-        result = cls(
+        result = CitationDocumentIngestionResult(
             request_id=_record_text(value, "request_id"),
             intent_id=_record_text(value, "intent_id"),
             link_result_id=_record_text(value, "link_result_id"),
-            link_id=_record_text(value, "link_id"),
+            source_document_link=_link_from_record(value.get("source_document_link")),
             receipt_id=_record_text(value, "receipt_id"),
             source_document_descriptor_id=_record_text(
                 value, "source_document_descriptor_id"
@@ -418,15 +551,93 @@ class CitationDocumentIngestionResult:
             publication_action=_optional_text(value, "publication_action"),
         )
         if value.get("result_id") != result.result_id:
-            raise ValueError("registry result identity is invalid")
+            raise ValueError("ingestion result identity is invalid")
+        result.validate_identity()
         return result
+
+
+def _link_record(link: CitationSourceDocumentLink) -> dict[str, object]:
+    payload = link.identity_payload()
+    payload["link_id"] = link.link_id
+    return payload
+
+
+def _link_from_record(value: object) -> CitationSourceDocumentLink:
+    if not isinstance(value, dict):
+        raise ValueError("source document link record must be an object")
+    expected = {
+        "contract_id",
+        "creating_request_id",
+        "prior_projection_id",
+        "prior_item_id",
+        "target_snapshot_id",
+        "identity_projection_id",
+        "literal_citekey",
+        "identity_item_id",
+        "requested_identity_id",
+        "source_document",
+        "availability_observation_ids",
+        "pre_effect_intent_id",
+        "linkage_basis",
+        "limitations",
+        "link_id",
+    }
+    if set(value) != expected:
+        raise ValueError("source document link record shape is invalid")
+    descriptor_value = value.get("source_document")
+    if not isinstance(descriptor_value, dict) or set(descriptor_value) != {
+        "source_document_id",
+        "sha256",
+        "byte_size",
+        "media_type",
+        "descriptor_id",
+    }:
+        raise ValueError("source document descriptor record is invalid")
+    byte_size = descriptor_value.get("byte_size")
+    if type(byte_size) is not int:
+        raise ValueError("source document byte size is invalid")
+    descriptor = CitationSourceDocumentDescriptor(
+        source_document_id=_record_text(descriptor_value, "source_document_id"),
+        sha256=_record_text(descriptor_value, "sha256"),
+        byte_size=byte_size,
+        media_type=_record_text(descriptor_value, "media_type"),
+    )
+    if descriptor_value.get("descriptor_id") != descriptor.descriptor_id:
+        raise ValueError("source document descriptor identity is invalid")
+    link = CitationSourceDocumentLink(
+        creating_request_id=_record_text(value, "creating_request_id"),
+        prior_projection_id=_record_text(value, "prior_projection_id"),
+        prior_item_id=_record_text(value, "prior_item_id"),
+        target_snapshot_id=_record_text(value, "target_snapshot_id"),
+        identity_projection_id=_record_text(value, "identity_projection_id"),
+        literal_citekey=_record_text(value, "literal_citekey"),
+        identity_item_id=_record_text(value, "identity_item_id"),
+        requested_identity_id=_record_text(value, "requested_identity_id"),
+        source_document=descriptor,
+        availability_observation_ids=_record_text_tuple(
+            value, "availability_observation_ids"
+        ),
+        pre_effect_intent_id=_record_text(value, "pre_effect_intent_id"),
+        linkage_basis=_record_text(value, "linkage_basis"),
+        limitations=_record_text_tuple(value, "limitations"),
+        link_id=_record_text(value, "link_id"),
+    )
+    link.validate_identity()
+    return link
 
 
 def _record_text(value: dict[object, object], key: str) -> str:
     item = value.get(key)
     if type(item) is not str:
-        raise ValueError(f"registry {key} must be text")
+        raise ValueError(f"record {key} must be text")
     return item
+
+
+def _record_text_tuple(value: dict[object, object], key: str) -> tuple[str, ...]:
+    item = value.get(key)
+    if not isinstance(item, list) or any(type(entry) is not str for entry in item):
+        raise ValueError(f"record {key} must be a text list")
+    return tuple(item)
 
 
 def _optional_text(value: dict[object, object], key: str) -> str | None:
@@ -434,7 +645,7 @@ def _optional_text(value: dict[object, object], key: str) -> str | None:
     if item is None:
         return None
     if type(item) is not str:
-        raise ValueError(f"registry {key} must be text or null")
+        raise ValueError(f"record {key} must be text or null")
     return item
 
 
@@ -443,7 +654,7 @@ def _optional_int(value: dict[object, object], key: str) -> int | None:
     if item is None:
         return None
     if type(item) is not int:
-        raise ValueError(f"registry {key} must be an integer or null")
+        raise ValueError(f"record {key} must be an integer or null")
     return item
 
 

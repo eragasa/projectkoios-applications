@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import final
 
+from projectkoios.base import DataObjectActionizer
 from projectkoios.ingestion import (
     PdfExtractionArtifactBundle,
     extract_pdf_bytes_artifacts,
@@ -22,7 +23,11 @@ from .citation_document_contracts import (
     CitationDocumentIngestionResult,
     CitationDocumentTerminalStatus,
 )
-from .citation_document_custody import PrivatePdfCustody
+from .citation_document_custody import (
+    PrivatePdfCustody,
+    _require_mode_0600_files,
+    _require_private_root,
+)
 from .citation_document_registry import (
     CitationDocumentRegistry,
     CitationDocumentRegistryError,
@@ -46,7 +51,12 @@ _TranscriptProjector = Callable[..., DocumentTranscriptProjection]
 
 @final
 @dataclass(frozen=True, slots=True)
-class CitationDocumentIngestionService:
+class CitationDocumentIngestionService(
+    DataObjectActionizer[
+        CitationDocumentIngestionRequest,
+        CitationDocumentIngestionResult,
+    ]
+):
     """Perform one bounded synchronous effect and retain its terminal result."""
 
     custody: PrivatePdfCustody
@@ -59,11 +69,10 @@ class CitationDocumentIngestionService:
 
     def __post_init__(self) -> None:
         if type(self.custody) is not PrivatePdfCustody:
-            raise TypeError("custody must be a PrivatePdfCustody")
-        if not isinstance(self.package_root, AuthorizedRoot):
-            raise TypeError("package_root must be an AuthorizedRoot")
+            raise TypeError("custody must be an exact PrivatePdfCustody")
         if type(self.registry) is not CitationDocumentRegistry:
-            raise TypeError("registry must be a CitationDocumentRegistry")
+            raise TypeError("registry must be an exact CitationDocumentRegistry")
+        self._validate_roots()
         for dependency, name in (
             (self.extractor, "extractor"),
             (self.package_builder, "package_builder"),
@@ -73,26 +82,68 @@ class CitationDocumentIngestionService:
             if not callable(dependency):
                 raise TypeError(f"{name} must be callable")
 
+    def _validate_roots(self) -> None:
+        _require_private_root(self.custody.root, field_name="custody root")
+        _require_private_root(self.package_root, field_name="package root")
+        _require_private_root(self.registry.root, field_name="registry root")
+        roots = (
+            ("custody root", self.custody.root.path),
+            ("package root", self.package_root.path),
+            ("registry root", self.registry.root.path),
+        )
+        for index, (left_name, left) in enumerate(roots):
+            for right_name, right in roots[index + 1 :]:
+                if (
+                    left == right
+                    or left.is_relative_to(right)
+                    or right.is_relative_to(left)
+                ):
+                    raise ValueError(
+                        f"{left_name} and {right_name} must be disjoint and non-nested"
+                    )
+
     def request(
         self,
         intent: CitationDocumentIngestionIntent,
     ) -> CitationDocumentIngestionRequest:
         """Create the owner link Result and downstream synchronous request."""
+        if type(self) is not CitationDocumentIngestionService:
+            raise TypeError("service must be an exact CitationDocumentIngestionService")
+        self._validate_roots()
         if type(intent) is not CitationDocumentIngestionIntent:
             raise TypeError("intent must be a CitationDocumentIngestionIntent")
+        intent.validate_identity()
         link_result = CitationSourceDocumentLinker().link(request=intent.link_request())
         return CitationDocumentIngestionRequest(
             intent=intent,
             link_result=link_result,
         )
 
+    def action(
+        self,
+        *,
+        request: CitationDocumentIngestionRequest,
+    ) -> CitationDocumentIngestionResult:
+        """Execute synchronously or return the exact retained terminal replay."""
+        if type(self) is not CitationDocumentIngestionService:
+            raise TypeError("service must be an exact CitationDocumentIngestionService")
+        self._validate_roots()
+        if type(request) is not CitationDocumentIngestionRequest:
+            raise TypeError("request must be a CitationDocumentIngestionRequest")
+        request.validate_identity()
+        return self._execute(request)
+
     def ingest(
         self,
         request: CitationDocumentIngestionRequest,
     ) -> CitationDocumentIngestionResult:
-        """Execute synchronously or return the exact retained terminal replay."""
-        if type(request) is not CitationDocumentIngestionRequest:
-            raise TypeError("request must be a CitationDocumentIngestionRequest")
+        """Compatibility spelling routed through the sole action path."""
+        return self.action(request=request)
+
+    def _execute(
+        self,
+        request: CitationDocumentIngestionRequest,
+    ) -> CitationDocumentIngestionResult:
         existing = self.registry.lookup(request)
         if existing is not None:
             if existing.status is CitationDocumentTerminalStatus.SUCCEEDED:
@@ -188,7 +239,7 @@ class CitationDocumentIngestionService:
                 request,
                 self._failure(
                     request,
-                    CitationDocumentTerminalStatus.FAILED,
+                    CitationDocumentTerminalStatus.INDETERMINATE,
                     CitationDocumentFailureCode.TRANSCRIPT_VERIFICATION_FAILED,
                 ),
             )
@@ -229,13 +280,18 @@ class CitationDocumentIngestionService:
     def _document_root(self, document_id: str) -> AuthorizedRoot:
         if self.package_root.state(document_id) != "directory":
             raise ValueError("document package is not a directory")
-        return AuthorizedRoot.existing(
+        document_root = AuthorizedRoot.existing(
             self.package_root.child_path(document_id),
             label=f"citation document package {document_id}",
             root_alias=self.package_root.preflight_evidence.root_alias,
             storage_class=self.package_root.preflight_evidence.storage_class,
             placeholder_probe=self.package_root.placeholder_probe,
         )
+        _require_mode_0600_files(
+            document_root,
+            field_name="document package root",
+        )
+        return document_root
 
     @staticmethod
     def _require_transcript_source(
@@ -264,7 +320,7 @@ class CitationDocumentIngestionService:
             request_id=request.request_id,
             intent_id=request.intent.intent_id,
             link_result_id=request.link_result.result_id,
-            link_id=request.link_result.link.link_id,
+            source_document_link=request.link_result.link,
             receipt_id=request.intent.receipt.receipt_id,
             source_document_descriptor_id=(
                 request.intent.receipt.source_document.descriptor_id
@@ -288,7 +344,7 @@ class CitationDocumentIngestionService:
             request_id=request.request_id,
             intent_id=request.intent.intent_id,
             link_result_id=request.link_result.result_id,
-            link_id=request.link_result.link.link_id,
+            source_document_link=request.link_result.link,
             receipt_id=request.intent.receipt.receipt_id,
             source_document_descriptor_id=(
                 request.intent.receipt.source_document.descriptor_id
@@ -303,11 +359,4 @@ class CitationDocumentIngestionService:
         request: CitationDocumentIngestionRequest,
         result: CitationDocumentIngestionResult,
     ) -> CitationDocumentIngestionResult:
-        try:
-            return self.registry.record(request, result)
-        except CitationDocumentRegistryError, OSError, ValueError:
-            return self._failure(
-                request,
-                CitationDocumentTerminalStatus.INDETERMINATE,
-                CitationDocumentFailureCode.REGISTRY_CONFLICT,
-            )
+        return self.registry.record(request, result)

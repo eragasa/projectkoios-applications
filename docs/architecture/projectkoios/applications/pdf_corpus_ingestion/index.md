@@ -60,10 +60,16 @@ full processing completion.
 
 The citation-document slice composes one explicit uploaded PDF into the current
 document package without Search, Workflow, a queue, a background task, or an
-automatic retry. `PrivatePdfCustody.receive` accepts a bounded binary stream,
-checks size, SHA-256, and the `%PDF-` header incrementally, writes only bounded
-chunks to a private temporary file, and atomically publishes an immutable mode-0600 blob
-under an exact mode-0700 local root. The path-free receipt contains only the
+automatic retry. Its source-mirroring module documentation covers the
+[contracts](citation_document_contracts/index.md),
+[custody](citation_document_custody/index.md),
+[registry](citation_document_registry/index.md), and
+[service](citation_document_service/index.md). `PrivatePdfCustody.receive`
+accepts a bounded binary stream with declared MIME exactly `application/pdf`,
+checks that MIME, size, SHA-256, and the `%PDF-` header jointly and incrementally,
+writes only bounded chunks to a private temporary file, and atomically publishes
+an immutable mode-0600 blob under an exact local non-symlink mode-0700 root. The
+path-free receipt contains only the
 technical descriptor and deterministic receipt identity. It grants no rights,
 use, admission, review, bibliographic, or publication authority. Retained bytes
 are read from custody once for Ingestion's exact-bytes API.
@@ -75,29 +81,34 @@ References projection Result and selected owner items, configured local-operator
 authority assertion and private-processing admission decision identities, and
 the complete extraction configuration and artifact limits. These are configured
 local policy identities, not proof of an authenticated remote user. The
-pre-effect intent exists before linkage. References receives only its opaque
-`pre_effect_intent_id`; its neutral link remains explicitly non-authorizing and
+pre-effect intent exists before linkage. Target inventory types are consumed
+from canonical `projectkoios.references.citations`, bibliography bindings from
+`projectkoios.references.bibliography`, and document/projection/link contracts
+from `projectkoios.references.citation_document`. References receives only its
+opaque `pre_effect_intent_id`; its neutral link remains explicitly non-authorizing and
 has no dependency on Applications. The downstream request is derived from that
 intent plus the exact replay-valid References link Result, which keeps the
 identity graph acyclic.
 
-`CitationDocumentIngestionService.ingest` is synchronous. It reads exact retained
-bytes, calls `extract_pdf_bytes_artifacts`, builds and publishes the current
-deterministic package, projects and verifies the exact transcript, and only then
-publishes an immutable registry Result. Terminal status is exactly `SUCCEEDED`,
-`FAILED`, or `INDETERMINATE`. Only `SUCCEEDED` carries package, extraction, and
-transcript readiness evidence. `INDETERMINATE` means publication or registry
-state is partial, conflicting, or unknown; it carries no transcript-ready claim
-and is never retried, overwritten, or repaired. Exact replay returns the retained
-terminal Result without rerunning extraction. A package target that exists
-without an exact retained terminal Result yields `INDETERMINATE` without
-re-extraction, verification promotion, republication, or mutation. Resolving
-that state requires a separately admitted reconciliation capability outside this
-slice.
+`CitationDocumentIngestionService` is a final `DataObjectActionizer`; its
+keyword-only `action(*, request)` is the single synchronous behavior path and
+`ingest(request)` delegates to it. It reads exact retained bytes, calls
+`extract_pdf_bytes_artifacts`, builds and publishes the current deterministic
+package, projects and verifies the exact transcript, and only then publishes an
+immutable registry Result. Terminal status is exactly `SUCCEEDED`, `FAILED`, or
+`INDETERMINATE`. Only `SUCCEEDED` carries package, extraction, and transcript
+readiness evidence. An existing package without an exact retained terminal
+Result, or transcript verification failure after publication, yields
+`INDETERMINATE` without re-extraction, verification promotion, republication, or
+mutation. Registry persistence failure propagates; an unpersisted terminal
+Result is never fabricated. Resolving indeterminate state requires a separately
+admitted reconciliation capability outside this slice.
 
 `CitationDocumentRegistry` stores at most 10,000 immutable, 64-KB terminal
-records. Its path-free projection is ordered by exact request identity and lists
-successful document identities separately. Transcript lookup accepts only a
+records under its own registry-contract envelope; the nested Result retains the
+complete neutral References link lineage under the ingestion contract. Its
+path-free `DataObjectModel` projection is ordered by exact request identity and
+lists successful document identities separately. Transcript lookup accepts only a
 registered successful document identity and re-verifies the current package and
 projection. Failed and indeterminate results remain visible as terminal evidence
 but are not documents. This registry is application-level evidence, not Search
@@ -108,8 +119,8 @@ parallel compatibility shape.
 The exact compatibility inputs for this slice are the ksdft citation-target
 commit/tree `3ec21b4318020d700be671a8f220b2149b3d28c7` /
 `9953c0e99a28443426b5093852292f7cfbada2cc`, References commit/tree
-`b51b04a7aa914d48b123de2fa50a181e30a2374d` /
-`bd2be6764cd1ec9be080023a62c14db2c23bfdf8`, and Ingestion commit/tree
+`f1ca7b4aee552af131ff7af7d1408d33dd338c93` /
+`b37672e36af13014dc25170be725fbf3f909c2d7`, and Ingestion commit/tree
 `be60640bec4fe15cc88b24161545eb1027ffbd2e` /
 `d386a1744f79463fd7cd0b3087ee5fc361e0f7d5`. Literal target keys and source
 paths remain owner values and are never normalized through filesystem naming
