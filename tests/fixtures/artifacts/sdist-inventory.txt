@@ -216,6 +216,7 @@ projectkoios_applications-0.1.0.dev0/examples/projectkoios/applications/pw_dft_s
 projectkoios_applications-0.1.0.dev0/examples/projectkoios/applications/pw_dft_scf/workflow/workflow.py
 projectkoios_applications-0.1.0.dev0/pyproject.toml
 projectkoios_applications-0.1.0.dev0/scripts
+projectkoios_applications-0.1.0.dev0/scripts/verify_citation_document_ingestion.sh
 projectkoios_applications-0.1.0.dev0/scripts/verify_document_transcript.sh
 projectkoios_applications-0.1.0.dev0/setup.cfg
 projectkoios_applications-0.1.0.dev0/src
@@ -226,6 +227,10 @@ projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/__init
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/_optional_dependencies.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/__init__.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/citation_document_contracts.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/citation_document_custody.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/citation_document_registry.py
+projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/citation_document_service.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/cli.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/composition.py
 projectkoios_applications-0.1.0.dev0/src/python/projectkoios/applications/pdf_corpus_ingestion/document_package.py
@@ -296,6 +301,7 @@ projectkoios_applications-0.1.0.dev0/tests/fixtures/transfer/expected-transfer-t
 projectkoios_applications-0.1.0.dev0/tests/projectkoios
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion
+projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__citation_document_ingestion.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__cli.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__document_package.py
 projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/pdf_corpus_ingestion/test__equation_review.py
@@ -332,6 +338,7 @@ projectkoios_applications-0.1.0.dev0/tests/projectkoios/applications/support.py
 projectkoios_applications-0.1.0.dev0/tests/repository
 projectkoios_applications-0.1.0.dev0/tests/repository/test__build_artifacts.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__calculator_authority.py
+projectkoios_applications-0.1.0.dev0/tests/repository/test__citation_document_boundaries.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__dependency_boundaries.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__optional_dependency_metadata.py
 projectkoios_applications-0.1.0.dev0/tests/repository/test__pdf_corpus_ingestion_boundaries.py

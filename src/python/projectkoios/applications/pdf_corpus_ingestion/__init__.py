@@ -1,5 +1,41 @@
-"""Bounded PDF-corpus discovery and ingestion application composition."""
+"""Bounded PDF-corpus and citation-document application composition."""
 
+from importlib import import_module
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .citation_document_contracts import (
+        CITATION_DOCUMENT_INGESTION_CONTRACT_ID,
+        CITATION_DOCUMENT_INGESTION_INTENT_CONTRACT_ID,
+        CITATION_DOCUMENT_RECEIPT_CONTRACT_ID,
+        CITATION_DOCUMENT_REGISTRY_CONTRACT_ID,
+        INGESTION_DOCUMENT_PACKAGE_SOURCE_COMMIT,
+        INGESTION_DOCUMENT_PACKAGE_SOURCE_TREE,
+        KSDFT_CITATION_TARGET_SOURCE_COMMIT,
+        KSDFT_CITATION_TARGET_SOURCE_TREE,
+        REFERENCES_CITATION_DOCUMENT_SOURCE_COMMIT,
+        REFERENCES_CITATION_DOCUMENT_SOURCE_TREE,
+        CitationDocumentFailureCode,
+        CitationDocumentIngestionIntent,
+        CitationDocumentIngestionRequest,
+        CitationDocumentIngestionResult,
+        CitationDocumentReceipt,
+        CitationDocumentTerminalStatus,
+    )
+    from .citation_document_custody import (
+        MAX_CITATION_DOCUMENT_PDF_BYTES,
+        CitationDocumentCustodyError,
+        CitationDocumentCustodyLimitError,
+        PrivatePdfCustody,
+    )
+    from .citation_document_registry import (
+        MAX_CITATION_DOCUMENT_REGISTRY_ENTRIES,
+        CitationDocumentRegistry,
+        CitationDocumentRegistryError,
+        CitationDocumentRegistryLimitError,
+        CitationDocumentRegistryProjection,
+    )
+    from .citation_document_service import CitationDocumentIngestionService
 from .composition import compose_pdf_corpus_ingestion_plan
 from .document_package import (
     DOCUMENT_PACKAGE_CONTRACT_ID,
@@ -75,7 +111,51 @@ from .transcript import (
     project_document_transcript,
 )
 
+_CITATION_DOCUMENT_EXPORT_MODULES = {
+    "CITATION_DOCUMENT_INGESTION_CONTRACT_ID": ".citation_document_contracts",
+    "CITATION_DOCUMENT_INGESTION_INTENT_CONTRACT_ID": (".citation_document_contracts"),
+    "CITATION_DOCUMENT_RECEIPT_CONTRACT_ID": ".citation_document_contracts",
+    "CITATION_DOCUMENT_REGISTRY_CONTRACT_ID": ".citation_document_contracts",
+    "INGESTION_DOCUMENT_PACKAGE_SOURCE_COMMIT": ".citation_document_contracts",
+    "INGESTION_DOCUMENT_PACKAGE_SOURCE_TREE": ".citation_document_contracts",
+    "KSDFT_CITATION_TARGET_SOURCE_COMMIT": ".citation_document_contracts",
+    "KSDFT_CITATION_TARGET_SOURCE_TREE": ".citation_document_contracts",
+    "REFERENCES_CITATION_DOCUMENT_SOURCE_COMMIT": ".citation_document_contracts",
+    "REFERENCES_CITATION_DOCUMENT_SOURCE_TREE": ".citation_document_contracts",
+    "CitationDocumentFailureCode": ".citation_document_contracts",
+    "CitationDocumentIngestionIntent": ".citation_document_contracts",
+    "CitationDocumentIngestionRequest": ".citation_document_contracts",
+    "CitationDocumentIngestionResult": ".citation_document_contracts",
+    "CitationDocumentReceipt": ".citation_document_contracts",
+    "CitationDocumentTerminalStatus": ".citation_document_contracts",
+    "MAX_CITATION_DOCUMENT_PDF_BYTES": ".citation_document_custody",
+    "CitationDocumentCustodyError": ".citation_document_custody",
+    "CitationDocumentCustodyLimitError": ".citation_document_custody",
+    "PrivatePdfCustody": ".citation_document_custody",
+    "MAX_CITATION_DOCUMENT_REGISTRY_ENTRIES": ".citation_document_registry",
+    "CitationDocumentRegistry": ".citation_document_registry",
+    "CitationDocumentRegistryError": ".citation_document_registry",
+    "CitationDocumentRegistryLimitError": ".citation_document_registry",
+    "CitationDocumentRegistryProjection": ".citation_document_registry",
+    "CitationDocumentIngestionService": ".citation_document_service",
+}
+
+
+def __getattr__(name: str) -> object:
+    """Load the exact-owner citation slice only when one of its APIs is used."""
+    module_name = _CITATION_DOCUMENT_EXPORT_MODULES.get(name)
+    if module_name is None:
+        raise AttributeError(name)
+    value = getattr(import_module(module_name, __name__), name)
+    globals()[name] = value
+    return value
+
+
 __all__ = [
+    "CITATION_DOCUMENT_INGESTION_CONTRACT_ID",
+    "CITATION_DOCUMENT_INGESTION_INTENT_CONTRACT_ID",
+    "CITATION_DOCUMENT_RECEIPT_CONTRACT_ID",
+    "CITATION_DOCUMENT_REGISTRY_CONTRACT_ID",
     "DOCUMENT_PACKAGE_CONTRACT_ID",
     "DOCUMENT_PACKAGE_MANIFEST",
     "ASSISTED_EQUATION_ATTEMPT_SCHEMA_VERSION",
@@ -85,12 +165,33 @@ __all__ = [
     "EQUATION_REVIEW_QUEUE_SCHEMA_VERSION",
     "EQUATION_REVIEW_SCHEMA_VERSION",
     "HUMAN_EQUATION_REVISION_SCHEMA_VERSION",
+    "INGESTION_DOCUMENT_PACKAGE_SOURCE_COMMIT",
+    "INGESTION_DOCUMENT_PACKAGE_SOURCE_TREE",
+    "KSDFT_CITATION_TARGET_SOURCE_COMMIT",
+    "KSDFT_CITATION_TARGET_SOURCE_TREE",
     "MAX_APPLICATION_PDF_BYTES",
     "MAX_APPLICATION_PDF_PAGES",
+    "MAX_CITATION_DOCUMENT_PDF_BYTES",
+    "MAX_CITATION_DOCUMENT_REGISTRY_ENTRIES",
     "MAX_DOCUMENT_TRANSCRIPT_DISPLAY_NAME_BYTES",
     "MAX_EQUATION_REVIEW_QUEUE_CANDIDATES",
     "MAX_TRANCHE_ITEMS",
+    "REFERENCES_CITATION_DOCUMENT_SOURCE_COMMIT",
+    "REFERENCES_CITATION_DOCUMENT_SOURCE_TREE",
     "AssistedEquationAttempt",
+    "CitationDocumentCustodyError",
+    "CitationDocumentCustodyLimitError",
+    "CitationDocumentFailureCode",
+    "CitationDocumentIngestionIntent",
+    "CitationDocumentIngestionRequest",
+    "CitationDocumentIngestionResult",
+    "CitationDocumentIngestionService",
+    "CitationDocumentReceipt",
+    "CitationDocumentRegistry",
+    "CitationDocumentRegistryError",
+    "CitationDocumentRegistryLimitError",
+    "CitationDocumentRegistryProjection",
+    "CitationDocumentTerminalStatus",
     "DeterministicDocumentPackage",
     "DocumentPackageArtifact",
     "DocumentPackageError",
@@ -132,6 +233,7 @@ __all__ = [
     "PdfCorpusMultimodalPolicy",
     "PdfCorpusPlanError",
     "PdfCorpusPlanItem",
+    "PrivatePdfCustody",
     "append_human_equation_revision",
     "build_deterministic_document_package",
     "compose_pdf_corpus_ingestion_plan",
